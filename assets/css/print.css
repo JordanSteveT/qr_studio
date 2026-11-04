@@ -1,0 +1,118 @@
+/* ==========================================================================
+   QR Studio — Feuille de style d'impression (@media print)
+   Garantit une mise en page épurée, centrée et sans éléments d'interface.
+   ========================================================================== */
+
+@media print {
+  /* Masquer tous les éléments parasites de l'interface utilisateur */
+  header,
+  footer,
+  nav,
+  .mobile-tabs,
+  .mobile-action-bar,
+  .config-panel,
+  .export-panel-root,
+  .export-actions-mock,
+  .quality-bar,
+  .zoom-btn,
+  .zoom-modal-backdrop,
+  .site-header,
+  .site-footer,
+  .editor-header,
+  .editor-header-actions,
+  .preview-skeleton,
+  .skeleton-spinner,
+  .skeleton-corner,
+  button,
+  input {
+    display: none !important;
+  }
+
+  /* Configuration de la page papier */
+  @page {
+    size: A4 portrait;
+    margin: 20mm;
+  }
+
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    font-family: system-ui, -apple-system, sans-serif !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .editor-page,
+  .split-layout,
+  .preview-panel,
+  .sticky-wrapper {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+  }
+
+  .preview-card {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-top: 35mm !important;
+    background: transparent !important;
+  }
+
+  .preview-stage {
+    border: none !important;
+    box-shadow: none !important;
+    width: 110mm !important;
+    height: auto !important;
+    max-width: 110mm !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: transparent !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Ciblage universel du SVG ou Canvas sous media print (sans :deep non supporté en CSS pur) */
+  .preview-stage svg,
+  .preview-stage canvas,
+  .qr-canvas-host svg,
+  .qr-canvas-host canvas,
+  .qr-target-element svg,
+  .qr-target-element canvas {
+    width: 100mm !important;
+    height: 100mm !important;
+    max-width: 100mm !important;
+    max-height: 100mm !important;
+    display: block !important;
+    margin: 0 auto !important;
+  }
+
+  .frame-presentation-box {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    max-width: 120mm !important;
+    margin: 0 auto !important;
+  }
+
+  /* Mention discrète sous l'impression */
+  .preview-card::after {
+    content: "Généré avec QR Studio — Gratuit, local et confidentiel (qrstudio.app)";
+    display: block;
+    margin-top: 20mm;
+    font-size: 10pt;
+    color: #64748b;
+    text-align: center;
+  }
+}
