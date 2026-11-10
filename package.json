@@ -2,6 +2,7 @@
   "name": "qr-studio",
   "private": true,
   "type": "module",
+  "packageManager": "npm@11.12.1",
   "version": "1.0.0",
   "description": "Générateur de QR codes moderne, 100% local, respectueux de la vie privée",
   "scripts": {
