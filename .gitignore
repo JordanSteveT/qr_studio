@@ -4,6 +4,7 @@ node_modules/
 .output/
 .nitro/
 dist/
+.wrangler/
 
 # Logs
 logs/
