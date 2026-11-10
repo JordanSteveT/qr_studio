@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { QrDesign, QrDotType, QrCornerSquareType, QrCornerDotType } from '~/types/design'
-import { Shapes, Eye } from 'lucide-vue-next'
 
 const props = defineProps<{
   design: QrDesign
@@ -139,28 +138,28 @@ const selectCornerDot = (type: QrCornerDotType) => {
 }
 
 .block-title {
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.8rem;
+  font-weight: 700;
   color: var(--color-text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   margin: 0;
 }
 
 .shape-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 0.4rem;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.5rem;
 }
 
 .shape-card {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  padding: 0.5rem 0.65rem;
-  background-color: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.8rem;
+  background-color: var(--color-bg);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: all var(--transition-fast);
   text-align: left;
@@ -172,40 +171,45 @@ const selectCornerDot = (type: QrCornerDotType) => {
 }
 
 .shape-card.active {
-  background-color: var(--color-primary-light);
-  border-color: var(--color-primary);
+  background-color: #d9f24a;
+  border-color: #1a1523;
+  box-shadow: 0 2px 0 #1a1523;
 }
 
 .shape-title {
-  font-size: 0.825rem;
-  font-weight: 600;
+  font-size: 0.85rem;
+  font-weight: 700;
   color: var(--color-text);
 }
 
 .shape-card.active .shape-title {
-  color: var(--color-primary);
+  color: #1a1523;
 }
 
 .shape-desc {
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   color: var(--color-text-subtle);
   margin-top: 0.15rem;
   line-height: 1.3;
 }
 
+.shape-card.active .shape-desc {
+  color: #332c3f;
+}
+
 .pill-group {
   display: flex;
-  gap: 0.4rem;
+  gap: 0.45rem;
   flex-wrap: wrap;
 }
 
 .pill-btn {
-  padding: 0.4rem 0.85rem;
-  font-size: 0.8rem;
-  font-weight: 500;
-  background-color: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  padding: 0.45rem 1rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  background-color: var(--color-bg);
+  border: 1.5px solid var(--color-border);
+  border-radius: 999px;
   color: var(--color-text-muted);
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -218,9 +222,9 @@ const selectCornerDot = (type: QrCornerDotType) => {
 }
 
 .pill-btn.active {
-  background-color: var(--color-primary-light);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  font-weight: 600;
+  background-color: #d9f24a;
+  border-color: #1a1523;
+  color: #1a1523;
+  font-weight: 700;
 }
 </style>

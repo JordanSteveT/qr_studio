@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { Save, Download, Upload, RotateCcw, Edit2, Check, AlertCircle } from 'lucide-vue-next'
+import { ref, watch, nextTick } from 'vue'
+import { Save, Download, Upload, RotateCcw, Edit2, Check } from 'lucide-vue-next'
 
 interface Props {
   projectName?: string
@@ -22,13 +22,17 @@ const emit = defineEmits<{
 
 const isEditingName = ref(false)
 const localName = ref(props.projectName)
+const nameInputRef = ref<HTMLInputElement | null>(null)
 
 watch(() => props.projectName, (val) => {
   localName.value = val
 })
 
-const handleStartRename = () => {
+const handleStartRename = async () => {
   isEditingName.value = true
+  await nextTick()
+  nameInputRef.value?.focus()
+  nameInputRef.value?.select()
 }
 
 const handleConfirmRename = () => {
@@ -57,11 +61,11 @@ const handleKeydown = (event: KeyboardEvent) => {
       <!-- Édition en ligne du nom du projet -->
       <div v-if="isEditingName" class="name-edit-form">
         <input
+          ref="nameInputRef"
           v-model="localName"
           type="text"
           class="name-input"
           maxlength="50"
-          autofocus
           aria-label="Nom du projet"
           @keydown="handleKeydown"
           @blur="handleConfirmRename"
@@ -70,6 +74,7 @@ const handleKeydown = (event: KeyboardEvent) => {
           type="button"
           class="name-confirm-btn"
           aria-label="Valider le nom"
+          @mousedown.prevent="handleConfirmRename"
           @click="handleConfirmRename"
         >
           <Check :size="16" />
@@ -98,7 +103,7 @@ const handleKeydown = (event: KeyboardEvent) => {
         title="Importer un fichier de projet JSON"
         @click="emit('import-json')"
       >
-        <Upload :size="16" />
+        <Upload :size="15" />
         <span class="btn-label">Importer</span>
       </button>
 
@@ -108,7 +113,7 @@ const handleKeydown = (event: KeyboardEvent) => {
         title="Exporter la configuration au format JSON"
         @click="emit('export-json')"
       >
-        <Download :size="16" />
+        <Download :size="15" />
         <span class="btn-label">JSON</span>
       </button>
 
@@ -118,7 +123,7 @@ const handleKeydown = (event: KeyboardEvent) => {
         title="Réinitialiser le projet"
         @click="emit('reset')"
       >
-        <RotateCcw :size="16" />
+        <RotateCcw :size="15" />
         <span class="btn-label">Réinitialiser</span>
       </button>
 
@@ -129,7 +134,7 @@ const handleKeydown = (event: KeyboardEvent) => {
         title="Enregistrer dans votre navigateur (IndexedDB)"
         @click="emit('save')"
       >
-        <Save :size="16" />
+        <Save :size="15" />
         <span>Enregistrer</span>
       </button>
     </div>
@@ -141,9 +146,9 @@ const handleKeydown = (event: KeyboardEvent) => {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  padding: 0.75rem 0;
+  padding: 1rem 0 1.1rem;
   margin-bottom: 1.5rem;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 2px solid var(--color-border);
 }
 
 @media (min-width: 640px) {
@@ -157,39 +162,40 @@ const handleKeydown = (event: KeyboardEvent) => {
 .header-left {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.6rem;
   min-width: 0;
 }
 
 .name-display {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.45rem;
   cursor: pointer;
-  padding: 0.2rem 0.4rem;
-  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--radius-md);
   transition: background-color var(--transition-fast);
 }
 
 .name-display:hover {
-  background-color: var(--color-surface-hover);
+  background-color: var(--color-surface);
 }
 
 .project-title {
-  font-size: 1.05rem;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
   color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 240px;
+  max-width: 260px;
 }
 
 .rename-hint-btn {
   color: var(--color-text-subtle);
   display: inline-flex;
   align-items: center;
-  opacity: 0.6;
+  opacity: 0.75;
 }
 
 .name-display:hover .rename-hint-btn {
@@ -200,15 +206,15 @@ const handleKeydown = (event: KeyboardEvent) => {
 .name-edit-form {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.35rem;
 }
 
 .name-input {
   font-size: 1rem;
   font-weight: 600;
-  padding: 0.2rem 0.5rem;
+  padding: 0.3rem 0.65rem;
   background-color: var(--color-surface);
-  border: 1px solid var(--color-primary);
+  border: 2px solid var(--color-border-focus);
   border-radius: var(--radius-sm);
   color: var(--color-text);
   outline: none;
@@ -218,37 +224,38 @@ const handleKeydown = (event: KeyboardEvent) => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.75rem;
-  height: 1.75rem;
-  background-color: var(--color-primary);
-  color: #ffffff;
+  width: 2rem;
+  height: 2rem;
+  background-color: #d9f24a;
+  color: #1a1523;
+  border: 2px solid #1a1523;
   border-radius: var(--radius-sm);
 }
 
 .dirty-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.15rem 0.45rem;
-  font-size: 0.72rem;
-  font-weight: 500;
-  color: var(--color-text-muted);
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #1a1523;
+  background-color: #ffd84d;
+  border: 1.5px solid #1a1523;
   border-radius: var(--radius-full);
 }
 
 .dirty-dot {
-  width: 5px;
-  height: 5px;
-  background-color: #f59e0b;
+  width: 6px;
+  height: 6px;
+  background-color: #ff5a36;
   border-radius: 50%;
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.45rem;
   flex-wrap: wrap;
 }
 
@@ -256,57 +263,54 @@ const handleKeydown = (event: KeyboardEvent) => {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.35rem 0.65rem;
-  font-size: 0.8rem;
-  font-weight: 500;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.84rem;
+  font-weight: 600;
   color: var(--color-text-muted);
-  background-color: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  background-color: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: 999px;
   transition: all var(--transition-fast);
 }
 
 .tool-btn:hover {
   color: var(--color-text);
-  background-color: var(--color-surface);
-  border-color: var(--color-border);
-}
-
-.tool-btn--ghost {
-  color: var(--color-text-subtle);
+  border-color: var(--color-border-hover);
 }
 
 .tool-btn--ghost:hover {
   color: var(--color-danger);
+  border-color: var(--color-danger);
 }
 
 .save-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.35rem 0.75rem;
-  font-size: 0.825rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
+  gap: 0.4rem;
+  padding: 0.48rem 1.05rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-text);
   background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border: 2px solid var(--color-border-hover);
+  border-radius: 999px;
   transition: all var(--transition-fast);
 }
 
 .save-btn:hover {
-  color: var(--color-text);
-  border-color: var(--color-border-hover);
+  background-color: #d9f24a;
+  color: #1a1523;
+  border-color: #1a1523;
 }
 
 .save-btn--active {
-  background-color: var(--color-primary);
-  color: #ffffff;
-  border-color: var(--color-primary);
+  background-color: #d9f24a;
+  color: #1a1523;
+  border-color: #1a1523;
 }
 
 .save-btn--active:hover {
-  background-color: var(--color-primary-hover);
+  background-color: #c2de2c;
 }
 
 @media (max-width: 480px) {

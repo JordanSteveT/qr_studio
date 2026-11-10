@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLocalProjects } from '~/composables/useLocalProjects'
 import type { QrProjectEntity } from '~/types/project'
@@ -7,7 +7,6 @@ import ProjectCard from '~/components/projects/ProjectCard.vue'
 import ProjectEmptyState from '~/components/projects/ProjectEmptyState.vue'
 import { downloadBlob, sanitizeFileName } from '~/utils/download.util'
 import {
-  FolderOpen,
   PlusCircle,
   Search,
   Upload,
@@ -39,15 +38,26 @@ const {
 const searchQuery = ref('')
 const selectedTypeFilter = ref<string>('ALL')
 const isConfirmDeleteAllOpen = ref(false)
+const projectPendingDelete = ref<{ id: string; name: string } | null>(null)
 const notificationMessage = ref<{ type: 'success' | 'error'; text: string } | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
+let toastTimer: ReturnType<typeof setTimeout> | null = null
 
 const showToast = (text: string, type: 'success' | 'error' = 'success') => {
+  if (toastTimer) {
+    clearTimeout(toastTimer)
+  }
   notificationMessage.value = { text, type }
-  setTimeout(() => {
+  toastTimer = setTimeout(() => {
     notificationMessage.value = null
   }, 4000)
 }
+
+onUnmounted(() => {
+  if (toastTimer) {
+    clearTimeout(toastTimer)
+  }
+})
 
 // Filtrage réactif des projets
 const filteredProjects = computed(() => {
@@ -65,22 +75,29 @@ const handleOpenProject = (id: string) => {
 const handleDuplicate = async (id: string) => {
   try {
     const dup = await duplicateProject(id)
-    showToast(`Projet dupliqué sous le nom "${dup.name}"`)
+    showToast(`Projet dupliqué sous le nom « ${dup.name} »`)
   } catch {
     showToast('Erreur lors de la duplication du projet', 'error')
   }
 }
 
-const handleDelete = async (id: string) => {
+const requestDelete = (id: string) => {
   const target = projects.value.find(p => p.id === id)
-  const name = target ? target.name : 'ce projet'
-  if (confirm(`Êtes-vous sûr de vouloir supprimer définitivement "${name}" ?`)) {
-    try {
-      await deleteProject(id)
-      showToast(`Le projet "${name}" a été supprimé.`)
-    } catch {
-      showToast('Échec de la suppression', 'error')
-    }
+  projectPendingDelete.value = {
+    id,
+    name: target ? target.name : 'ce projet'
+  }
+}
+
+const confirmDeleteSingle = async () => {
+  if (!projectPendingDelete.value) return
+  const { id, name } = projectPendingDelete.value
+  projectPendingDelete.value = null
+  try {
+    await deleteProject(id)
+    showToast(`Le projet « ${name} » a été supprimé.`)
+  } catch {
+    showToast('Échec de la suppression', 'error')
   }
 }
 
@@ -99,7 +116,7 @@ const handleExportJson = (project: QrProjectEntity) => {
   const jsonStr = JSON.stringify(exportData, null, 2)
   const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' })
   downloadBlob(blob, sanitizeFileName(project.name, 'json'))
-  showToast(`Configuration JSON exportée pour "${project.name}"`)
+  showToast(`Configuration JSON exportée pour « ${project.name} »`)
 }
 
 const handleExportAllJson = () => {
@@ -125,7 +142,6 @@ const handleFileImport = async (event: Event) => {
 
   try {
     const text = await file.text()
-    // Vérification s'il s'agit d'un import unitaire ou tableau global
     const parsed = JSON.parse(text)
     if (Array.isArray(parsed)) {
       let count = 0
@@ -148,7 +164,7 @@ const handleFileImport = async (event: Event) => {
         design: validated.design,
         thumbnailDataUrl: validated.design.logo?.logoDataUrl || ''
       })
-      showToast(`Projet "${validated.name}" importé avec succès !`)
+      showToast(`Projet « ${validated.name} » importé avec succès !`)
     }
   } catch (err: unknown) {
     showToast(err instanceof Error ? err.message : 'Erreur lors de l\'import du fichier.', 'error')
@@ -257,6 +273,7 @@ const handleFileImport = async (event: Event) => {
           <option value="PHONE">Téléphone</option>
           <option value="GEO">Localisation</option>
           <option value="EVENT">Événement</option>
+          <option value="CUSTOM">Données brutes</option>
         </select>
       </div>
     </div>
@@ -292,9 +309,37 @@ const handleFileImport = async (event: Event) => {
         :project="project"
         @open="handleOpenProject"
         @duplicate="handleDuplicate"
-        @delete="handleDelete"
+        @delete="requestDelete"
         @export-json="handleExportJson"
       />
+    </div>
+
+    <!-- Modale confirmation suppression individuelle -->
+    <div
+      v-if="projectPendingDelete"
+      class="modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Confirmation de suppression du projet"
+      @click.self="projectPendingDelete = null"
+    >
+      <div class="modal-card">
+        <div class="modal-icon-danger">
+          <AlertTriangle :size="28" />
+        </div>
+        <h2 class="modal-title">Supprimer ce projet ?</h2>
+        <p class="modal-desc">
+          Voulez-vous supprimer définitivement « <strong>{{ projectPendingDelete.name }}</strong> » ? Il n’y a pas de corbeille distante.
+        </p>
+        <div class="modal-actions">
+          <button type="button" class="modal-btn modal-btn--cancel" @click="projectPendingDelete = null">
+            Annuler
+          </button>
+          <button type="button" class="modal-btn modal-btn--danger" @click="confirmDeleteSingle">
+            Supprimer
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Modale de confirmation de suppression globale -->
@@ -308,11 +353,11 @@ const handleFileImport = async (event: Event) => {
     >
       <div class="modal-card">
         <div class="modal-icon-danger">
-          <AlertTriangle :size="32" />
+          <AlertTriangle :size="28" />
         </div>
         <h2 class="modal-title">Effacer tous vos projets ?</h2>
         <p class="modal-desc">
-          Cette action est irréversible. L'ensemble de vos <strong>{{ projects.length }}</strong> projet(s) sera définitivement supprimé de la mémoire de votre navigateur.
+          Cette action est irréversible. L’ensemble de vos <strong>{{ projects.length }}</strong> projet(s) sera définitivement supprimé de la mémoire de votre navigateur.
         </p>
         <div class="modal-actions">
           <button
@@ -337,21 +382,9 @@ const handleFileImport = async (event: Event) => {
 
 <style scoped>
 .projects-page {
-  padding: 2rem 0 5rem 0;
+  padding: 2.5rem 0 5rem 0;
 }
 
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  border: 0;
-}
-
-/* Toast */
 .toast-notification {
   position: fixed;
   bottom: 2rem;
@@ -361,23 +394,23 @@ const handleFileImport = async (event: Event) => {
   align-items: center;
   gap: 0.75rem;
   padding: 0.85rem 1.25rem;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 700;
   animation: slideUp 0.25s ease-out;
 }
 
 .toast-notification--success {
-  background-color: var(--color-surface);
-  color: var(--color-success);
-  border: 1px solid var(--color-success);
+  background-color: #1a1523;
+  color: #d9f24a;
+  border: 2px solid #d9f24a;
 }
 
 .toast-notification--error {
-  background-color: var(--color-surface);
-  color: var(--color-danger);
-  border: 1px solid var(--color-danger);
+  background-color: #ff5a36;
+  color: #ffffff;
+  border: 2px solid #1a1523;
 }
 
 @keyframes slideUp {
@@ -385,14 +418,13 @@ const handleFileImport = async (event: Event) => {
   to { transform: translateY(0); opacity: 1; }
 }
 
-/* En-tête */
 .projects-header {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
   margin-bottom: 2rem;
   padding-bottom: 1.5rem;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 2px solid var(--color-border);
 }
 
 @media (min-width: 768px) {
@@ -410,25 +442,26 @@ const handleFileImport = async (event: Event) => {
 }
 
 .page-title {
-  font-size: 1.75rem;
-  font-weight: 800;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
   color: var(--color-text);
   margin: 0;
 }
 
 .count-badge {
-  background-color: var(--color-surface-hover);
-  border: 1px solid var(--color-border);
-  color: var(--color-primary);
+  background-color: #d9f24a;
+  border: 2px solid #1a1523;
+  color: #1a1523;
   font-size: 0.85rem;
   font-weight: 700;
-  padding: 0.2rem 0.6rem;
+  padding: 0.2rem 0.65rem;
   border-radius: var(--radius-full);
 }
 
 .page-subtitle {
   color: var(--color-text-muted);
-  font-size: 0.95rem;
+  font-size: 0.96rem;
   margin-top: 0.35rem;
   max-width: 650px;
 }
@@ -444,13 +477,13 @@ const handleFileImport = async (event: Event) => {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.55rem 0.9rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  border: 2px solid var(--color-border);
   background-color: var(--color-surface);
   color: var(--color-text);
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   text-decoration: none;
   transition: all var(--transition-fast);
@@ -458,19 +491,18 @@ const handleFileImport = async (event: Event) => {
 
 .header-btn:hover {
   background-color: var(--color-surface-hover);
-  border-color: var(--color-text-muted);
+  border-color: var(--color-border-hover);
 }
 
 .header-btn--primary {
-  background-color: var(--color-primary);
-  color: #ffffff;
-  border-color: var(--color-primary);
+  background-color: #d9f24a;
+  color: #1a1523;
+  border-color: #1a1523;
 }
 
 .header-btn--primary:hover {
-  background-color: var(--color-primary-hover);
-  color: #ffffff;
-  border-color: var(--color-primary-hover);
+  background-color: #c2de2c;
+  color: #1a1523;
 }
 
 .header-btn--danger {
@@ -478,11 +510,11 @@ const handleFileImport = async (event: Event) => {
 }
 
 .header-btn--danger:hover {
-  background-color: rgba(239, 68, 68, 0.08);
-  border-color: var(--color-danger);
+  background-color: #ff5a36;
+  color: #ffffff;
+  border-color: #1a1523;
 }
 
-/* Barre d'outils */
 .toolbar-section {
   display: flex;
   flex-direction: column;
@@ -506,7 +538,7 @@ const handleFileImport = async (event: Event) => {
 
 .search-icon {
   position: absolute;
-  left: 0.75rem;
+  left: 0.9rem;
   top: 50%;
   transform: translateY(-50%);
   color: var(--color-text-muted);
@@ -514,37 +546,35 @@ const handleFileImport = async (event: Event) => {
 
 .search-input {
   width: 100%;
-  padding: 0.6rem 0.75rem 0.6rem 2.25rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
+  padding: 0.65rem 0.9rem 0.65rem 2.4rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--color-border);
   background-color: var(--color-surface);
   color: var(--color-text);
-  font-size: 0.9rem;
+  font-size: 0.92rem;
 }
 
 .search-input:focus {
   outline: none;
-  border-color: var(--color-primary);
+  border-color: var(--color-border-focus);
 }
 
 .type-select {
-  padding: 0.6rem 0.85rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
+  padding: 0.65rem 1rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--color-border);
   background-color: var(--color-surface);
   color: var(--color-text);
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 
-/* Grille */
 .projects-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(265px, 1fr));
   gap: 1.5rem;
 }
 
-/* États */
 .loading-state {
   display: flex;
   flex-direction: column;
@@ -557,7 +587,7 @@ const handleFileImport = async (event: Event) => {
 
 .spin-icon {
   animation: spin 1s linear infinite;
-  color: var(--color-primary);
+  color: var(--color-text);
 }
 
 @keyframes spin {
@@ -570,7 +600,7 @@ const handleFileImport = async (event: Event) => {
   align-items: center;
   gap: 0.75rem;
   padding: 1rem;
-  background-color: rgba(239, 68, 68, 0.1);
+  background-color: var(--color-danger-bg);
   color: var(--color-danger);
   border-radius: var(--radius-md);
   margin-bottom: 2rem;
@@ -586,28 +616,28 @@ const handleFileImport = async (event: Event) => {
   margin-top: 1rem;
   background: none;
   border: none;
-  color: var(--color-primary);
-  font-weight: 600;
+  color: var(--color-text);
+  font-weight: 700;
   cursor: pointer;
   text-decoration: underline;
 }
 
-/* Modale */
 .modal-backdrop {
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: rgba(26, 21, 35, 0.65);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(4px);
 }
 
 .modal-card {
   background-color: var(--color-surface);
-  border-radius: var(--radius-lg);
+  border: 3px solid #1a1523;
+  border-radius: var(--radius-2xl);
   padding: 2rem;
   max-width: 450px;
   width: 100%;
@@ -618,12 +648,17 @@ const handleFileImport = async (event: Event) => {
   box-shadow: var(--shadow-lg);
 }
 
+.dark .modal-card {
+  border-color: var(--color-accent);
+}
+
 .modal-icon-danger {
-  width: 64px;
-  height: 64px;
-  border-radius: var(--radius-full);
-  background-color: rgba(239, 68, 68, 0.1);
-  color: var(--color-danger);
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: #ff5a36;
+  border: 2px solid #1a1523;
+  color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -631,14 +666,15 @@ const handleFileImport = async (event: Event) => {
 }
 
 .modal-title {
-  font-size: 1.25rem;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
   font-weight: 700;
   color: var(--color-text);
   margin-bottom: 0.5rem;
 }
 
 .modal-desc {
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   color: var(--color-text-muted);
   line-height: 1.5;
   margin-bottom: 1.5rem;
@@ -653,9 +689,9 @@ const handleFileImport = async (event: Event) => {
 
 .modal-btn {
   flex: 1;
-  padding: 0.65rem 1rem;
-  border-radius: var(--radius-md);
-  font-weight: 600;
+  padding: 0.7rem 1rem;
+  border-radius: 999px;
+  font-weight: 700;
   font-size: 0.9rem;
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -663,7 +699,7 @@ const handleFileImport = async (event: Event) => {
 
 .modal-btn--cancel {
   background-color: transparent;
-  border: 1px solid var(--color-border);
+  border: 2px solid var(--color-border);
   color: var(--color-text);
 }
 
@@ -672,12 +708,12 @@ const handleFileImport = async (event: Event) => {
 }
 
 .modal-btn--danger {
-  background-color: var(--color-danger);
-  border: 1px solid var(--color-danger);
+  background-color: #ff5a36;
+  border: 2px solid #1a1523;
   color: #ffffff;
 }
 
 .modal-btn--danger:hover {
-  background-color: #dc2626;
+  opacity: 0.92;
 }
 </style>

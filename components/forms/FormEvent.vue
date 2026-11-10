@@ -17,6 +17,20 @@ const updateField = <K extends keyof QrEventData>(key: K, value: QrEventData[K])
     [key]: value
   })
 }
+
+const toggleAllDay = (allDay: boolean) => {
+  const formatForMode = (dateStr: string, defaultTime: string): string => {
+    const dateOnly = dateStr.split('T')[0] || '2026-11-15'
+    return allDay ? dateOnly : (dateStr.includes('T') ? dateStr.slice(0, 16) : `${dateOnly}T${defaultTime}`)
+  }
+
+  emit('update:modelValue', {
+    ...props.modelValue,
+    allDay,
+    startDate: formatForMode(props.modelValue.startDate, '09:00'),
+    endDate: formatForMode(props.modelValue.endDate, '18:00')
+  })
+}
 </script>
 
 <template>
@@ -33,9 +47,9 @@ const updateField = <K extends keyof QrEventData>(key: K, value: QrEventData[K])
         class="form-control"
         :class="{ 'has-error': !!props.errors?.title }"
         :value="props.modelValue.title"
-        placeholder="ex: Conférence Tech, Mariage de Sophie & Marc..."
+        placeholder="ex: Conférence Tech, Atelier créatif..."
         @input="updateField('title', ($event.target as HTMLInputElement).value)"
-      />
+      >
       <p v-if="props.errors?.title" class="error-message" role="alert">
         {{ props.errors.title }}
       </p>
@@ -54,7 +68,7 @@ const updateField = <K extends keyof QrEventData>(key: K, value: QrEventData[K])
         :value="props.modelValue.location ?? ''"
         placeholder="ex: 10 rue de la Paix, Paris ou https://meet.google.com/..."
         @input="updateField('location', ($event.target as HTMLInputElement).value)"
-      />
+      >
     </div>
 
     <!-- Toute la journée -->
@@ -64,8 +78,8 @@ const updateField = <K extends keyof QrEventData>(key: K, value: QrEventData[K])
           type="checkbox"
           class="checkbox-input"
           :checked="props.modelValue.allDay"
-          @change="updateField('allDay', ($event.target as HTMLInputElement).checked)"
-        />
+          @change="toggleAllDay(($event.target as HTMLInputElement).checked)"
+        >
         <span>Événement sur toute la journée (sans heure précise)</span>
       </label>
     </div>
@@ -82,9 +96,9 @@ const updateField = <K extends keyof QrEventData>(key: K, value: QrEventData[K])
           :type="props.modelValue.allDay ? 'date' : 'datetime-local'"
           class="form-control"
           :class="{ 'has-error': !!props.errors?.startDate }"
-          :value="props.modelValue.startDate"
+          :value="props.modelValue.allDay ? props.modelValue.startDate.split('T')[0] : props.modelValue.startDate.slice(0, 16)"
           @input="updateField('startDate', ($event.target as HTMLInputElement).value)"
-        />
+        >
         <p v-if="props.errors?.startDate" class="error-message" role="alert">
           {{ props.errors.startDate }}
         </p>
@@ -100,9 +114,9 @@ const updateField = <K extends keyof QrEventData>(key: K, value: QrEventData[K])
           :type="props.modelValue.allDay ? 'date' : 'datetime-local'"
           class="form-control"
           :class="{ 'has-error': !!props.errors?.endDate }"
-          :value="props.modelValue.endDate"
+          :value="props.modelValue.allDay ? props.modelValue.endDate.split('T')[0] : props.modelValue.endDate.slice(0, 16)"
           @input="updateField('endDate', ($event.target as HTMLInputElement).value)"
-        />
+        >
         <p v-if="props.errors?.endDate" class="error-message" role="alert">
           {{ props.errors.endDate }}
         </p>
@@ -122,7 +136,7 @@ const updateField = <K extends keyof QrEventData>(key: K, value: QrEventData[K])
         :value="props.modelValue.description ?? ''"
         placeholder="Ordre du jour, informations pratiques..."
         @input="updateField('description', ($event.target as HTMLTextAreaElement).value)"
-      ></textarea>
+      />
     </div>
   </div>
 </template>
@@ -153,30 +167,30 @@ const updateField = <K extends keyof QrEventData>(key: K, value: QrEventData[K])
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: 0.825rem;
+  font-size: 0.84rem;
   font-weight: 600;
   color: var(--color-text);
 }
 
 .form-control {
   width: 100%;
-  padding: 0.75rem 1rem;
-  font-size: 0.95rem;
-  border: 1px solid var(--color-border);
+  padding: 0.72rem 0.95rem;
+  font-size: 0.94rem;
+  border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md);
   background-color: var(--color-bg);
   color: var(--color-text);
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
 }
 
 .form-control:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
 .form-control.has-error {
-  border-color: #ef4444;
+  border-color: var(--color-danger);
 }
 
 .checkbox-group {
@@ -187,7 +201,8 @@ const updateField = <K extends keyof QrEventData>(key: K, value: QrEventData[K])
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: 0.85rem;
+  font-size: 0.86rem;
+  font-weight: 600;
   color: var(--color-text);
   cursor: pointer;
   user-select: none;
@@ -196,13 +211,18 @@ const updateField = <K extends keyof QrEventData>(key: K, value: QrEventData[K])
 .checkbox-input {
   width: 16px;
   height: 16px;
-  accent-color: var(--color-primary);
+  accent-color: #1a1523;
   cursor: pointer;
+}
+
+.dark .checkbox-input {
+  accent-color: #d9f24a;
 }
 
 .error-message {
   font-size: 0.8rem;
-  color: #ef4444;
+  color: var(--color-danger);
+  font-weight: 600;
   margin: 0;
 }
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import type { QrDesign } from '~/types/design'
 import {
   type ExportFormat,
@@ -35,6 +35,7 @@ const isResolutionDropdownOpen = ref(false)
 const isExporting = ref(false)
 const activeFormat = ref<ExportFormat | 'print' | null>(null)
 const exportError = ref<string | null>(null)
+const dropdownWrapperRef = ref<HTMLElement | null>(null)
 
 const activeResolutionOption = computed(() => {
   return (
@@ -72,6 +73,36 @@ const handleExport = async (format: ExportFormat) => {
 const handlePrint = () => {
   PrintService.printPage()
 }
+
+const handleClickOutside = (e: MouseEvent) => {
+  if (
+    isResolutionDropdownOpen.value &&
+    dropdownWrapperRef.value &&
+    !dropdownWrapperRef.value.contains(e.target as Node)
+  ) {
+    isResolutionDropdownOpen.value = false
+  }
+}
+
+const handleKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape' && isResolutionDropdownOpen.value) {
+    isResolutionDropdownOpen.value = false
+  }
+}
+
+onMounted(() => {
+  if (typeof document !== 'undefined') {
+    document.addEventListener('click', handleClickOutside)
+    document.addEventListener('keydown', handleKeydown)
+  }
+})
+
+onUnmounted(() => {
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('click', handleClickOutside)
+    document.removeEventListener('keydown', handleKeydown)
+  }
+})
 </script>
 
 <template>
@@ -99,7 +130,7 @@ const handlePrint = () => {
       </button>
 
       <!-- Sélecteur de résolution pour PNG -->
-      <div class="resolution-dropdown-wrapper">
+      <div ref="dropdownWrapperRef" class="resolution-dropdown-wrapper">
         <button
           type="button"
           class="resolution-toggle-btn"
@@ -188,28 +219,27 @@ const handlePrint = () => {
 .export-panel-root {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.65rem;
   width: 100%;
 }
 
 .export-error-alert {
-  padding: 0.5rem 0.75rem;
+  padding: 0.6rem 0.85rem;
   background-color: var(--color-danger-bg);
   color: var(--color-danger);
-  border: 1px solid rgba(239, 68, 68, 0.2);
-  border-radius: var(--radius-sm);
-  font-size: 0.8rem;
+  border: 1.5px solid color-mix(in srgb, var(--color-danger) 35%, transparent);
+  border-radius: var(--radius-md);
+  font-size: 0.82rem;
   text-align: center;
+  font-weight: 600;
 }
 
-/* Groupe principal Téléchargement */
+/* Groupe principal Téléchargement style Lime QRStudio */
 .primary-download-group {
   display: flex;
   align-items: stretch;
   width: 100%;
   position: relative;
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
 }
 
 .btn-primary-download {
@@ -217,21 +247,22 @@ const handlePrint = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.45rem;
-  background-color: var(--color-primary);
-  color: var(--color-bg);
-  border: 1px solid var(--color-primary);
-  padding: 0.6rem 1rem;
-  border-top-left-radius: var(--radius-sm);
-  border-bottom-left-radius: var(--radius-sm);
-  font-weight: 600;
-  font-size: 0.875rem;
+  gap: 0.5rem;
+  background-color: #d9f24a;
+  color: #1a1523;
+  border: 2.5px solid #1a1523;
+  border-right: none;
+  padding: 0.78rem 1rem;
+  border-top-left-radius: 999px;
+  border-bottom-left-radius: 999px;
+  font-weight: 700;
+  font-size: 0.92rem;
   cursor: pointer;
-  transition: opacity var(--transition-fast);
+  transition: background-color var(--transition-fast), transform var(--transition-fast);
 }
 
 .btn-primary-download:hover:not(:disabled) {
-  opacity: 0.92;
+  background-color: #c2de2c;
 }
 
 .btn-primary-download:disabled {
@@ -240,59 +271,57 @@ const handlePrint = () => {
 }
 
 .res-tag {
-  font-size: 0.78rem;
-  font-weight: 500;
-  opacity: 0.85;
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0.8;
   margin-left: 0.2rem;
 }
 
-/* Bouton chevron sélecteur de résolution */
 .resolution-dropdown-wrapper {
   position: relative;
 }
 
 .resolution-toggle-btn {
-  background-color: var(--color-primary);
-  color: var(--color-bg);
-  border: 1px solid var(--color-primary);
-  border-left: 1px solid rgba(125, 125, 125, 0.3);
-  padding: 0 0.65rem;
+  background-color: #d9f24a;
+  color: #1a1523;
+  border: 2.5px solid #1a1523;
+  padding: 0 0.9rem;
   height: 100%;
-  border-top-right-radius: var(--radius-sm);
-  border-bottom-right-radius: var(--radius-sm);
+  border-top-right-radius: 999px;
+  border-bottom-right-radius: 999px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: opacity var(--transition-fast);
+  transition: background-color var(--transition-fast);
 }
 
 .resolution-toggle-btn:hover {
-  opacity: 0.92;
+  background-color: #c2de2c;
 }
 
 .resolution-menu {
   position: absolute;
-  bottom: calc(100% + 6px);
+  bottom: calc(100% + 8px);
   right: 0;
-  width: 240px;
+  width: 250px;
   background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border: 2px solid var(--color-border-hover);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  padding: 0.35rem;
-  z-index: 50;
+  padding: 0.45rem;
+  z-index: 60;
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.25rem;
 }
 
 .resolution-menu-header {
   font-size: 0.72rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-text-subtle);
   text-transform: uppercase;
-  padding: 0.3rem 0.5rem;
+  padding: 0.35rem 0.6rem;
   letter-spacing: 0.04em;
 }
 
@@ -300,8 +329,8 @@ const handlePrint = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.4rem 0.5rem;
-  border-radius: var(--radius-xs);
+  padding: 0.5rem 0.65rem;
+  border-radius: var(--radius-sm);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -314,8 +343,7 @@ const handlePrint = () => {
 }
 
 .resolution-item--active {
-  background-color: var(--color-primary-light);
-  color: var(--color-primary);
+  background-color: var(--color-accent-subtle);
 }
 
 .resolution-item-info {
@@ -324,8 +352,8 @@ const handlePrint = () => {
 }
 
 .res-label {
-  font-size: 0.8rem;
-  font-weight: 600;
+  font-size: 0.84rem;
+  font-weight: 700;
   color: var(--color-text);
 }
 
@@ -335,28 +363,28 @@ const handlePrint = () => {
 }
 
 .check-icon {
-  color: var(--color-primary);
+  color: var(--color-text);
 }
 
 /* Grille de formats secondaires */
 .secondary-actions-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.35rem;
+  gap: 0.4rem;
 }
 
 .btn-sec-export {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.3rem;
-  padding: 0.45rem 0.4rem;
-  background-color: transparent;
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  gap: 0.32rem;
+  padding: 0.55rem 0.4rem;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  border: 2px solid var(--color-border);
+  border-radius: 999px;
   font-size: 0.8rem;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
@@ -364,7 +392,6 @@ const handlePrint = () => {
 .btn-sec-export:hover:not(:disabled) {
   background-color: var(--color-surface-hover);
   border-color: var(--color-border-hover);
-  color: var(--color-text);
 }
 
 .btn-sec-export:disabled {
@@ -377,11 +404,7 @@ const handlePrint = () => {
 }
 
 @keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 </style>

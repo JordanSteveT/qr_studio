@@ -173,15 +173,22 @@ export function serializeGeo(data: QrGeoData): string {
  * Formate une date au format UTC iCalendar YYYYMMDDTHHmmssZ ou YYYYMMDD
  */
 export function formatICalDate(dateStr: string, allDay: boolean): string {
+  if (allDay) {
+    const isoDatePrefix = dateStr.trim().match(/^(\d{4})-(\d{2})-(\d{2})/)
+    if (isoDatePrefix) {
+      return `${isoDatePrefix[1]}${isoDatePrefix[2]}${isoDatePrefix[3]}`
+    }
+  }
+
   const d = new Date(dateStr)
   if (isNaN(d.getTime())) {
     return ''
   }
 
   if (allDay) {
-    const year = d.getUTCFullYear()
-    const month = String(d.getUTCMonth() + 1).padStart(2, '0')
-    const day = String(d.getUTCDate()).padStart(2, '0')
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
     return `${year}${month}${day}`
   }
 

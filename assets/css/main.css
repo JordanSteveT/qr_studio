@@ -1,133 +1,265 @@
 /**
- * QR Studio — Système de Design Sobre, Épuré & Haute Performance
- * Inspiré par les standards modernes (Linear, Vercel, Raycast)
+ * QR Studio — Système de Design (Inspiré du modèle Framer QRStudio)
+ * Palette : Crème chaud (#fff8ee), Encre profonde (#1a1523), Lime vif (#d9f24a)
+ * Typographie : Pally (Display/Titres) & Onest (Corps/UI) servies localement
  */
 
+/* ═══════════════════════════════════════════════════════
+   POLICES LOCALES (Pally Bold & Onest)
+   ═══════════════════════════════════════════════════════ */
+@font-face {
+  font-family: 'Pally';
+  src: url('/fonts/pally-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Onest';
+  src: url('/fonts/onest-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Onest';
+  src: url('/fonts/onest-500.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Onest';
+  src: url('/fonts/onest-600.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Onest';
+  src: url('/fonts/onest-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Onest';
+  src: url('/fonts/onest-900.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  /* Nuances de base — Mode Clair Sobre */
-  --color-bg: #ffffff;
-  --color-bg-subtle: #fafafa;
+  /* ── COULEURS DE FOND (Light Warm Cream) ── */
+  --color-bg: #fff8ee;
+  --color-bg-subtle: #f7f8f5;
+  --color-bg-alt: #f5ecdc;
+  --color-bg-sage: #e4e6e1;
+  --color-bg-dark: #1a1523;
+
+  /* ── SURFACES ── */
   --color-surface: #ffffff;
-  --color-surface-hover: #f4f4f5;
-  --color-surface-active: #e4e4e7;
-  --color-border: #e4e4e7;
-  --color-border-subtle: #f4f4f5;
-  --color-border-focus: #18181b;
+  --color-surface-hover: #fbf4e8;
+  --color-surface-active: #f1e6d4;
+  --color-surface-card: #ffffff;
 
-  /* Teintes d'accent sobres (Noir profond & Bleu nuit discret) */
-  --color-primary: #18181b;
-  --color-primary-hover: #27272a;
-  --color-primary-light: #f4f4f5;
-  --color-accent: #2563eb;
-  --color-accent-subtle: #eff6ff;
+  /* ── BORDURES ── */
+  --color-border: #eadfce;
+  --color-border-subtle: #f2eadc;
+  --color-border-hover: #1a1523;
+  --color-border-focus: #1a1523;
 
-  /* Typographie neutre de précision */
-  --color-text: #09090b;
-  --color-text-muted: #71717a;
-  --color-text-subtle: #a1a1aa;
+  /* ── ENCRE & TEXTES ── */
+  --color-ink: #1a1523;
+  --color-ink-soft: #332c3f;
+  --color-text: #1a1523;
+  --color-text-muted: #4a4452;
+  --color-text-subtle: #857e8d;
+  --color-text-on-dark: #fff8ee;
 
-  /* Statuts fonctionnels discrets */
+  /* ── ACCENT PRINCIPAL — Lime vif QRStudio ── */
+  --color-accent: #d9f24a;
+  --color-accent-bright: #ddf43a;
+  --color-accent-hover: #c2de2c;
+  --color-accent-subtle: #f2f9c5;
+  --color-accent-fg: #1a1523;
+
+  /* ── COULEUR PRIMAIRE (Boutons Ink) ── */
+  --color-primary: #1a1523;
+  --color-primary-hover: #332c3f;
+  --color-primary-fg: #fff8ee;
+  --color-primary-light: rgba(217, 242, 74, 0.35);
+
+  /* ── PASTELS & STICKERS QRSTUDIO ── */
+  --color-coral: #ff5a36;
+  --color-yellow: #ffd84d;
+  --color-pink: #ffb3d9;
+  --color-sky: #9cd2ff;
+  --color-purple: #c9b6ff;
+  --color-mint: #a8e6c3;
+
+  /* ── STATUTS FONCTIONNELS ── */
   --color-success: #15803d;
-  --color-success-bg: #f0fdf4;
+  --color-success-bg: #eefbf3;
   --color-warning: #b45309;
   --color-warning-bg: #fffbeb;
-  --color-danger: #b91c1c;
+  --color-danger: #c82315;
   --color-danger-bg: #fef2f2;
 
-  /* Rayons et Géométrie épurée */
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
+  /* ── ÉCHELLE D'ESPACEMENT ── */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+
+  /* ── GÉOMÉTRIE ── */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 26px;
+  --radius-2xl: 36px;
   --radius-full: 9999px;
 
-  /* Ombres fines et précises */
-  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04);
-  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-  --shadow-lg: 0 12px 24px -4px rgb(0 0 0 / 0.08);
+  /* ── OMBRES MULTICOUCHES DOUCES (Style Framer) ── */
+  --shadow-xs: 0 1px 2px 0 rgba(26, 21, 35, 0.05);
+  --shadow-sm: 0 2px 6px rgba(26, 21, 35, 0.06), 0 1px 2px rgba(26, 21, 35, 0.04);
+  --shadow-md: 0 8px 20px -4px rgba(26, 21, 35, 0.09), 0 2px 6px -1px rgba(26, 21, 35, 0.05);
+  --shadow-lg: 0 24px 48px -8px rgba(26, 21, 35, 0.14), 0 6px 16px -4px rgba(26, 21, 35, 0.07);
+  --shadow-hard: 0 4px 0 #1a1523;
+  --shadow-accent: 0 8px 24px -4px rgba(217, 242, 74, 0.45);
 
-  /* Transitions douces */
-  --transition-fast: 120ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  /* ── TRANSITIONS SPRING & DOUCES ── */
+  --transition-fast: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 220ms cubic-bezier(0.44, 0, 0.56, 1);
+  --transition-spring: 300ms cubic-bezier(0.34, 1.56, 0.5, 1);
 
-  /* Polices */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  /* ── POLICES ── */
+  --font-display: 'Pally', 'Onest', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: 'Onest', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
-/* Mode Sombre Sobre & Épuré */
+/* ═══════════════════════════════════════════════════════
+   MODE SOMBRE (Deep Ink #1a1523 + Lime #d9f24a)
+   ═══════════════════════════════════════════════════════ */
 .dark {
-  --color-bg: #09090b;
-  --color-bg-subtle: #121215;
-  --color-surface: #121215;
-  --color-surface-hover: #18181b;
-  --color-surface-active: #27272a;
-  --color-border: #27272a;
-  --color-border-subtle: #18181b;
-  --color-border-focus: #f4f4f5;
+  --color-bg: #1a1523;
+  --color-bg-subtle: #14101c;
+  --color-bg-alt: #241e30;
+  --color-bg-sage: #211b2c;
+  --color-bg-dark: #100c17;
 
-  --color-primary: #f4f4f5;
-  --color-primary-hover: #ffffff;
-  --color-primary-light: #18181b;
-  --color-accent: #3b82f6;
-  --color-accent-subtle: #1e293b;
+  --color-surface: #231d2e;
+  --color-surface-hover: #2d263b;
+  --color-surface-active: #372f48;
+  --color-surface-card: #231d2e;
 
-  --color-text: #fafafa;
-  --color-text-muted: #a1a1aa;
-  --color-text-subtle: #71717a;
+  --color-border: #3a314a;
+  --color-border-subtle: #2b2438;
+  --color-border-hover: #d9f24a;
+  --color-border-focus: #d9f24a;
 
-  --color-success: #22c55e;
+  --color-ink: #d9f24a;
+  --color-ink-soft: #c6bfd1;
+  --color-text: #fff8ee;
+  --color-text-muted: #c6bfd1;
+  --color-text-subtle: #8c8499;
+  --color-text-on-dark: #fff8ee;
+
+  --color-accent: #d9f24a;
+  --color-accent-bright: #e5fa5c;
+  --color-accent-hover: #c2de2c;
+  --color-accent-subtle: rgba(217, 242, 74, 0.14);
+  --color-accent-fg: #1a1523;
+
+  --color-primary: #d9f24a;
+  --color-primary-hover: #c2de2c;
+  --color-primary-fg: #1a1523;
+  --color-primary-light: rgba(217, 242, 74, 0.16);
+
+  --color-success: #4ade80;
   --color-success-bg: #052e16;
-  --color-warning: #f59e0b;
+  --color-warning: #fbbf24;
   --color-warning-bg: #451a03;
-  --color-danger: #ef4444;
+  --color-danger: #f87171;
   --color-danger-bg: #450a0a;
 
-  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.4);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
-  --shadow-lg: 0 12px 24px -4px rgb(0 0 0 / 0.5);
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 8px 20px -4px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 24px 48px -8px rgba(0, 0, 0, 0.65);
+  --shadow-hard: 0 4px 0 #0d0a13;
+  --shadow-accent: 0 8px 24px -4px rgba(217, 242, 74, 0.28);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not(.light) {
-    --color-bg: #09090b;
-    --color-bg-subtle: #121215;
-    --color-surface: #121215;
-    --color-surface-hover: #18181b;
-    --color-surface-active: #27272a;
-    --color-border: #27272a;
-    --color-border-subtle: #18181b;
-    --color-border-focus: #f4f4f5;
+    --color-bg: #1a1523;
+    --color-bg-subtle: #14101c;
+    --color-bg-alt: #241e30;
+    --color-bg-sage: #211b2c;
+    --color-bg-dark: #100c17;
 
-    --color-primary: #f4f4f5;
-    --color-primary-hover: #ffffff;
-    --color-primary-light: #18181b;
-    --color-accent: #3b82f6;
-    --color-accent-subtle: #1e293b;
+    --color-surface: #231d2e;
+    --color-surface-hover: #2d263b;
+    --color-surface-active: #372f48;
+    --color-surface-card: #231d2e;
 
-    --color-text: #fafafa;
-    --color-text-muted: #a1a1aa;
-    --color-text-subtle: #71717a;
+    --color-border: #3a314a;
+    --color-border-subtle: #2b2438;
+    --color-border-hover: #d9f24a;
+    --color-border-focus: #d9f24a;
 
-    --color-success: #22c55e;
+    --color-ink: #d9f24a;
+    --color-ink-soft: #c6bfd1;
+    --color-text: #fff8ee;
+    --color-text-muted: #c6bfd1;
+    --color-text-subtle: #8c8499;
+    --color-text-on-dark: #fff8ee;
+
+    --color-accent: #d9f24a;
+    --color-accent-bright: #e5fa5c;
+    --color-accent-hover: #c2de2c;
+    --color-accent-subtle: rgba(217, 242, 74, 0.14);
+    --color-accent-fg: #1a1523;
+
+    --color-primary: #d9f24a;
+    --color-primary-hover: #c2de2c;
+    --color-primary-fg: #1a1523;
+    --color-primary-light: rgba(217, 242, 74, 0.16);
+
+    --color-success: #4ade80;
     --color-success-bg: #052e16;
-    --color-warning: #f59e0b;
+    --color-warning: #fbbf24;
     --color-warning-bg: #451a03;
-    --color-danger: #ef4444;
+    --color-danger: #f87171;
     --color-danger-bg: #450a0a;
 
-    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.4);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4);
-    --shadow-lg: 0 12px 24px -4px rgb(0 0 0 / 0.5);
+    --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+    --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.45);
+    --shadow-md: 0 8px 20px -4px rgba(0, 0, 0, 0.55);
+    --shadow-lg: 0 24px 48px -8px rgba(0, 0, 0, 0.65);
+    --shadow-hard: 0 4px 0 #0d0a13;
+    --shadow-accent: 0 8px 24px -4px rgba(217, 242, 74, 0.28);
   }
 }
 
-/* Reset CSS */
-*, *::before, *::after {
+/* ═══════════════════════════════════════════════════════
+   RESET & BASE
+   ═══════════════════════════════════════════════════════ */
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -135,12 +267,14 @@
 
 html {
   font-family: var(--font-sans);
+  font-size: 16px;
   color: var(--color-text);
   background-color: var(--color-bg);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   scroll-behavior: smooth;
+  text-rendering: optimizeLegibility;
 }
 
 body {
@@ -149,6 +283,12 @@ body {
   flex-direction: column;
   background-color: var(--color-bg);
   color: var(--color-text);
+  overflow-x: hidden;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+  font-weight: 700;
 }
 
 a {
@@ -163,22 +303,143 @@ button {
   background: none;
 }
 
-input, textarea, select {
+input,
+textarea,
+select {
   font-family: inherit;
   color: inherit;
 }
 
-/* Conteneurs universels */
+img,
+video,
+svg {
+  max-width: 100%;
+  display: block;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+/* ═══════════════════════════════════════════════════════
+   CONTENEURS
+   ═══════════════════════════════════════════════════════ */
 .app-container {
   width: 100%;
   max-width: 1200px;
   margin-left: auto;
   margin-right: auto;
-  padding-left: 1.5rem;
-  padding-right: 1.5rem;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
 }
 
-/* Éléments utilitaires épurés */
+@media (min-width: 768px) {
+  .app-container {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   BOUTONS SIGNATURE QRSTUDIO (Pill 3px solid #1a1523)
+   ═══════════════════════════════════════════════════════ */
+.qr-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 52px;
+  padding: 0 26px;
+  border-radius: 999px;
+  border: 3px solid #1a1523;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: gap var(--transition-normal), transform var(--transition-spring), background-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.qr-btn:hover {
+  gap: 14px;
+  transform: translateY(-2px);
+}
+
+.qr-btn:active {
+  transform: translateY(0);
+}
+
+.qr-btn--sm {
+  height: 44px;
+  padding: 0 20px;
+  font-size: 0.9rem;
+  border-width: 2.5px;
+}
+
+.qr-btn--lg {
+  height: 56px;
+  padding: 0 28px;
+  font-size: 1.05rem;
+}
+
+.qr-btn--ink {
+  background-color: #1a1523;
+  color: #fff8ee;
+  border-color: #1a1523;
+}
+
+.qr-btn--ink:hover {
+  background-color: #332c3f;
+  box-shadow: 0 8px 20px rgba(26, 21, 35, 0.22);
+}
+
+.dark .qr-btn--ink {
+  background-color: #d9f24a;
+  color: #1a1523;
+  border-color: #d9f24a;
+}
+
+.dark .qr-btn--ink:hover {
+  background-color: #c2de2c;
+}
+
+.qr-btn--lime {
+  background-color: #d9f24a;
+  color: #1a1523;
+  border-color: #1a1523;
+}
+
+.qr-btn--lime:hover {
+  background-color: #c2de2c;
+  box-shadow: 0 8px 20px rgba(26, 21, 35, 0.16);
+}
+
+.qr-btn--outline {
+  background-color: rgba(255, 255, 255, 0.55);
+  color: #1a1523;
+  border-color: #1a1523;
+}
+
+.qr-btn--outline:hover {
+  background-color: #ffffff;
+}
+
+.dark .qr-btn--outline {
+  background-color: transparent;
+  color: #fff8ee;
+  border-color: #fff8ee;
+}
+
+.dark .qr-btn--outline:hover {
+  background-color: rgba(255, 248, 238, 0.1);
+}
+
+/* ═══════════════════════════════════════════════════════
+   UTILITAIRES
+   ═══════════════════════════════════════════════════════ */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -190,3 +451,9 @@ input, textarea, select {
   white-space: nowrap;
   border-width: 0;
 }
+
+.text-success { color: var(--color-success); }
+.text-warning { color: var(--color-warning); }
+.text-danger  { color: var(--color-danger);  }
+.text-muted   { color: var(--color-text-muted); }
+.text-accent  { color: var(--color-accent); }

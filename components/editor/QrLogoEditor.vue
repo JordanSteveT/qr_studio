@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import type { QrDesign } from '~/types/design'
-import { Image as ImageIcon, Upload, Trash2, ShieldCheck, AlertCircle } from 'lucide-vue-next'
+import { sanitizeSvgContent, utf8ToBase64 } from '~/utils/svg-sanitizer.util'
+import { Upload, Trash2, ShieldCheck, AlertCircle } from 'lucide-vue-next'
 
 const props = defineProps<{
   design: QrDesign
@@ -22,6 +23,24 @@ const triggerFileInput = () => {
   fileInput.value?.click()
 }
 
+const applyUploadedLogo = (file: File, dataUrl: string) => {
+  // Règle métier FR-006 : Élever la correction d'erreur au minimum à Q (25%) ou H (30%)
+  const currentErr = props.design.errorCorrectionLevel
+  const newErr = currentErr === 'L' || currentErr === 'M' ? 'Q' : currentErr
+
+  emit('update:design', {
+    ...props.design,
+    errorCorrectionLevel: newErr,
+    logo: {
+      ...props.design.logo,
+      hasLogo: true,
+      logoFileName: file.name,
+      logoMimeType: file.type,
+      logoDataUrl: dataUrl
+    }
+  })
+}
+
 const handleFile = (file: File) => {
   errorMessage.value = ''
 
@@ -35,26 +54,34 @@ const handleFile = (file: File) => {
     return
   }
 
+  // Assainissement strict des SVG (SEC-002) avant encodage Data URL
+  if (file.type === 'image/svg+xml') {
+    const textReader = new FileReader()
+    textReader.onload = (e) => {
+      const rawSvg = e.target?.result as string
+      const cleaned = sanitizeSvgContent(rawSvg)
+      if (!cleaned) {
+        errorMessage.value = 'Fichier SVG invalide ou vide.'
+        return
+      }
+      const dataUrl = `data:image/svg+xml;base64,${utf8ToBase64(cleaned)}`
+      applyUploadedLogo(file, dataUrl)
+    }
+    textReader.onerror = () => {
+      errorMessage.value = 'Impossible de lire le fichier SVG sélectionné.'
+    }
+    textReader.readAsText(file)
+    return
+  }
+
   const reader = new FileReader()
   reader.onload = (e) => {
     const dataUrl = e.target?.result as string
     if (!dataUrl) return
-
-    // Règle métier FR-006 : Élever la correction d'erreur au minimum à Q (25%) ou H (30%)
-    const currentErr = props.design.errorCorrectionLevel
-    const newErr = currentErr === 'L' || currentErr === 'M' ? 'Q' : currentErr
-
-    emit('update:design', {
-      ...props.design,
-      errorCorrectionLevel: newErr,
-      logo: {
-        ...props.design.logo,
-        hasLogo: true,
-        logoFileName: file.name,
-        logoMimeType: file.type,
-        logoDataUrl: dataUrl
-      }
-    })
+    applyUploadedLogo(file, dataUrl)
+  }
+  reader.onerror = () => {
+    errorMessage.value = 'Impossible de lire le fichier image sélectionné.'
   }
 
   reader.readAsDataURL(file)
@@ -91,7 +118,6 @@ const removeLogo = () => {
 }
 
 const updateLogoSize = (size: number) => {
-  // Si la taille dépasse 30%, on bascule à H
   const newErr = size > 0.3 ? 'H' : props.design.errorCorrectionLevel
 
   emit('update:design', {
@@ -133,7 +159,7 @@ const toggleHideDots = (hide: boolean) => {
       accept="image/png,image/jpeg,image/svg+xml,image/webp"
       class="hidden-file-input"
       @change="onFileChange"
-    />
+    >
 
     <!-- Zone de téléversement si aucun logo -->
     <div
@@ -146,7 +172,7 @@ const toggleHideDots = (hide: boolean) => {
       @click="triggerFileInput"
     >
       <div class="upload-icon-circle">
-        <Upload :size="24" aria-hidden="true" />
+        <Upload :size="22" aria-hidden="true" />
       </div>
       <p class="upload-title">Cliquez pour importer ou glissez un logo ici</p>
       <p class="upload-subtitle">Formats PNG, SVG, JPEG ou WebP (max. 2 Mo)</p>
@@ -160,7 +186,7 @@ const toggleHideDots = (hide: boolean) => {
             :src="props.design.logo.logoDataUrl"
             :alt="props.design.logo.logoFileName || 'Logo du QR Code'"
             class="logo-thumbnail-img"
-          />
+          >
         </div>
 
         <div class="logo-info">
@@ -184,6 +210,7 @@ const toggleHideDots = (hide: boolean) => {
             type="button"
             class="btn-action btn-delete"
             title="Supprimer le logo"
+            aria-label="Supprimer le logo"
             @click="removeLogo"
           >
             <Trash2 :size="16" aria-hidden="true" />
@@ -206,7 +233,7 @@ const toggleHideDots = (hide: boolean) => {
             class="slider-control"
             :value="props.design.logo.imageSize"
             @input="updateLogoSize(parseFloat(($event.target as HTMLInputElement).value))"
-          />
+          >
         </div>
 
         <div class="slider-row">
@@ -222,7 +249,7 @@ const toggleHideDots = (hide: boolean) => {
             class="slider-control"
             :value="props.design.logo.margin"
             @input="updateLogoMargin(parseInt(($event.target as HTMLInputElement).value, 10))"
-          />
+          >
         </div>
 
         <label class="checkbox-label">
@@ -230,7 +257,7 @@ const toggleHideDots = (hide: boolean) => {
             type="checkbox"
             :checked="props.design.logo.hideBackgroundDots"
             @change="toggleHideDots(($event.target as HTMLInputElement).checked)"
-          />
+          >
           <span>Masquer les points situés derrière le logo</span>
         </label>
       </div>
@@ -248,7 +275,7 @@ const toggleHideDots = (hide: boolean) => {
 .logo-editor {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 0.85rem;
 }
 
 .hidden-file-input {
@@ -263,40 +290,40 @@ const toggleHideDots = (hide: boolean) => {
   padding: 2rem 1.5rem;
   border: 2px dashed var(--color-border);
   border-radius: var(--radius-lg);
-  background-color: var(--color-bg-alt);
+  background-color: var(--color-bg);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
   text-align: center;
 }
 
 .upload-dropzone:hover,
 .upload-dropzone.is-dragging {
-  border-color: var(--color-primary);
-  background-color: rgba(99, 102, 241, 0.05);
+  border-color: var(--color-border-hover);
+  background-color: var(--color-accent-subtle);
 }
 
 .upload-icon-circle {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background-color: var(--color-bg);
-  border: 1px solid var(--color-border);
+  background-color: #d9f24a;
+  border: 2px solid #1a1523;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-primary);
-  margin-bottom: var(--space-2);
+  color: #1a1523;
+  margin-bottom: 0.65rem;
 }
 
 .upload-title {
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-size: 0.92rem;
+  font-weight: 700;
   color: var(--color-text);
   margin: 0 0 0.25rem 0;
 }
 
 .upload-subtitle {
-  font-size: 0.775rem;
+  font-size: 0.78rem;
   color: var(--color-text-muted);
   margin: 0;
 }
@@ -304,17 +331,17 @@ const toggleHideDots = (hide: boolean) => {
 .logo-active-box {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 0.9rem;
   padding: 1rem;
-  background-color: var(--color-bg-alt);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  background-color: var(--color-bg);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-lg);
 }
 
 .logo-preview-header {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: 0.85rem;
 }
 
 .logo-thumbnail-box {
@@ -322,7 +349,7 @@ const toggleHideDots = (hide: boolean) => {
   height: 48px;
   border-radius: var(--radius-md);
   background-color: #ffffff;
-  border: 1px solid var(--color-border);
+  border: 1.5px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -344,8 +371,8 @@ const toggleHideDots = (hide: boolean) => {
 }
 
 .logo-filename {
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.86rem;
+  font-weight: 700;
   color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
@@ -356,87 +383,95 @@ const toggleHideDots = (hide: boolean) => {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 0.75rem;
-  color: #10b981;
-  font-weight: 500;
+  font-size: 0.76rem;
+  color: var(--color-success);
+  font-weight: 600;
   margin-top: 0.15rem;
 }
 
 .logo-actions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
 }
 
 .btn-action {
-  padding: 0.4rem 0.65rem;
-  font-size: 0.775rem;
-  font-weight: 500;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
+  padding: 0.4rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1.5px solid var(--color-border);
   cursor: pointer;
-  background-color: var(--color-bg);
-  transition: all 0.2s ease;
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  transition: all var(--transition-fast);
 }
 
 .btn-replace:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  border-color: var(--color-border-hover);
+  background-color: #d9f24a;
+  color: #1a1523;
 }
 
 .btn-delete {
-  color: #ef4444;
+  color: var(--color-danger);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .btn-delete:hover {
-  border-color: #ef4444;
-  background-color: rgba(239, 68, 68, 0.1);
+  border-color: var(--color-danger);
+  background-color: var(--color-danger-bg);
 }
 
 .sliders-group {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding-top: var(--space-2);
-  border-top: 1px solid var(--color-border);
+  gap: 0.8rem;
+  padding-top: 0.75rem;
+  border-top: 1.5px solid var(--color-border);
 }
 
 .slider-row {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.3rem;
 }
 
 .slider-label-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
 }
 
 .slider-label {
   color: var(--color-text);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .slider-val {
   color: var(--color-text-muted);
+  font-weight: 700;
 }
 
 .slider-control {
   width: 100%;
-  accent-color: var(--color-primary);
+  accent-color: #1a1523;
   cursor: pointer;
+}
+
+.dark .slider-control {
+  accent-color: #d9f24a;
 }
 
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  font-size: 0.825rem;
+  gap: 0.5rem;
+  font-size: 0.84rem;
+  font-weight: 600;
   color: var(--color-text);
   cursor: pointer;
   user-select: none;
@@ -446,12 +481,13 @@ const toggleHideDots = (hide: boolean) => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.6rem 0.85rem;
-  background-color: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #991b1b;
+  padding: 0.65rem 0.9rem;
+  background-color: var(--color-danger-bg);
+  border: 1.5px solid color-mix(in srgb, var(--color-danger) 35%, transparent);
+  color: var(--color-danger);
   border-radius: var(--radius-md);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 600;
   margin: 0;
 }
 </style>

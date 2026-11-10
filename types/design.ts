@@ -6,7 +6,7 @@ export type QrDotType =
   | 'classy'
   | 'classy-rounded'
 
-export type QrCornerSquareType = 'square' | 'dot' | 'extra-rounded' | 'none'
+export type QrCornerSquareType = 'square' | 'dot' | 'extra-rounded' | 'classy' | 'none'
 export type QrCornerDotType = 'square' | 'dot' | 'none'
 
 export type QrErrorCorrectionLevel = 'L' | 'M' | 'Q' | 'H'
@@ -85,15 +85,15 @@ export interface QrDesign {
  */
 export const DEFAULT_QR_DESIGN: QrDesign = {
   dots: {
-    color: '#0f172a',
+    color: '#1a1523',
     type: 'rounded'
   },
   cornersSquare: {
-    color: '#0f172a',
+    color: '#1a1523',
     type: 'extra-rounded'
   },
   cornersDot: {
-    color: '#0f172a',
+    color: '#1a1523',
     type: 'dot'
   },
   background: {
@@ -109,9 +109,9 @@ export const DEFAULT_QR_DESIGN: QrDesign = {
   frame: {
     type: 'none',
     text: 'SCANNEZ-MOI',
-    textColor: '#ffffff',
-    frameColor: '#3b82f6',
-    fontFamily: 'Inter, system-ui, sans-serif'
+    textColor: '#fff8ee',
+    frameColor: '#1a1523',
+    fontFamily: 'Onest, system-ui, sans-serif'
   },
   errorCorrectionLevel: 'M',
   margin: 10

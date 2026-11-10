@@ -31,3 +31,10 @@ Desktop.ini
 *.njsproj
 *.sln
 *.sw?
+
+# Design reference folder (Framer / HTTrack export — not part of the app source)
+QRStudio/
+QRStudio.whtt
+/backblue.gif
+/fade.gif
+/index.html

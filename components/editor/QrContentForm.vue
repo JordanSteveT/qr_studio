@@ -16,6 +16,7 @@ import type {
 } from '~/types/content'
 import { DEFAULT_CONTENTS } from '~/types/content'
 import { serializeQrContent } from '~/services/qr/serializers'
+import { deepClone } from '~/utils/clone.util'
 import {
   urlContentSchema,
   textContentSchema,
@@ -51,32 +52,28 @@ const emit = defineEmits<{
   (e: 'change'): void
 }>()
 
-// État local réactif du contenu
-const currentContent: Ref<QrContent> = ref(props.initialContent ? { ...props.initialContent } : { ...DEFAULT_CONTENTS.URL })
+const currentContent: Ref<QrContent> = ref(
+  props.initialContent ? deepClone(props.initialContent) : deepClone(DEFAULT_CONTENTS.URL)
+)
 const errors: Ref<Record<string, string>> = ref({})
 
-// Dictionnaire de mémoire pour préserver les saisies de l'utilisateur lors du passage d'un type à un autre
 const memoryStore: Record<QrContentType, QrContent> = {
-  URL: { ...DEFAULT_CONTENTS.URL },
-  TEXT: { ...DEFAULT_CONTENTS.TEXT },
-  WIFI: { ...DEFAULT_CONTENTS.WIFI },
-  VCARD: { ...DEFAULT_CONTENTS.VCARD },
-  EMAIL: { ...DEFAULT_CONTENTS.EMAIL },
-  SMS: { ...DEFAULT_CONTENTS.SMS },
-  PHONE: { ...DEFAULT_CONTENTS.PHONE },
-  GEO: { ...DEFAULT_CONTENTS.GEO },
-  EVENT: { ...DEFAULT_CONTENTS.EVENT },
-  CUSTOM: { ...DEFAULT_CONTENTS.CUSTOM }
+  URL: deepClone(DEFAULT_CONTENTS.URL),
+  TEXT: deepClone(DEFAULT_CONTENTS.TEXT),
+  WIFI: deepClone(DEFAULT_CONTENTS.WIFI),
+  VCARD: deepClone(DEFAULT_CONTENTS.VCARD),
+  EMAIL: deepClone(DEFAULT_CONTENTS.EMAIL),
+  SMS: deepClone(DEFAULT_CONTENTS.SMS),
+  PHONE: deepClone(DEFAULT_CONTENTS.PHONE),
+  GEO: deepClone(DEFAULT_CONTENTS.GEO),
+  EVENT: deepClone(DEFAULT_CONTENTS.EVENT),
+  CUSTOM: deepClone(DEFAULT_CONTENTS.CUSTOM)
 }
 
-// Initialise le memoryStore avec initialContent
 if (props.initialContent) {
-  memoryStore[props.initialContent.type] = { ...props.initialContent }
+  memoryStore[props.initialContent.type] = deepClone(props.initialContent)
 }
 
-/**
- * Valide le contenu courant avec le schéma Zod adapté
- */
 const validateContent = (content: QrContent): boolean => {
   errors.value = {}
 
@@ -125,48 +122,53 @@ const validateContent = (content: QrContent): boolean => {
   return true
 }
 
-/**
- * Émet la sérialisation et les mises à jour
- */
-const syncUpdates = () => {
+const syncUpdates = (markUserChange: boolean) => {
   const content = currentContent.value
-  memoryStore[content.type] = { ...content }
+  memoryStore[content.type] = deepClone(content)
 
   const isValid = validateContent(content)
   const serialized = serializeQrContent(content)
 
   emit('update:content', content)
-  if (isValid && serialized) {
+  if (serialized) {
     emit('update:encodedData', serialized)
   }
-  emit('change')
+  if (markUserChange) {
+    emit('change')
+  }
 }
 
-// Changement de type de contenu
 const handleTypeSelect = (newType: QrContentType) => {
   if (currentContent.value.type === newType) return
 
-  // Sauvegarde le type actuel dans la mémoire
-  memoryStore[currentContent.value.type] = { ...currentContent.value }
-
-  // Restaure le contenu du nouveau type depuis la mémoire
-  currentContent.value = { ...memoryStore[newType] }
-  syncUpdates()
+  memoryStore[currentContent.value.type] = deepClone(currentContent.value)
+  currentContent.value = deepClone(memoryStore[newType])
+  syncUpdates(true)
 }
 
-// Mise à jour des données du formulaire enfant
 const handleDataUpdate = (updatedContent: QrContent) => {
   currentContent.value = updatedContent
-  syncUpdates()
+  syncUpdates(true)
 }
 
-// Synchronisation initiale
 watch(
   () => props.initialContent,
-  (newVal) => {
-    if (newVal) {
-      currentContent.value = { ...newVal }
-      syncUpdates()
+  (newVal, oldVal) => {
+    if (!newVal) return
+    const isInitialMount = oldVal === undefined
+    const isExternalChange = JSON.stringify(newVal) !== JSON.stringify(currentContent.value)
+    if (isInitialMount || isExternalChange) {
+      currentContent.value = deepClone(newVal)
+      memoryStore[newVal.type] = deepClone(newVal)
+      validateContent(currentContent.value)
+      const serialized = serializeQrContent(currentContent.value)
+      if (serialized) {
+        emit('update:encodedData', serialized)
+      }
+      // Sur montage initial autonome (sans parent qui écoute uniquement @update:encodedData), émettre update:content une seule fois si le contenu diffère ou au tout début
+      if (isInitialMount) {
+        emit('update:content', currentContent.value)
+      }
     }
   },
   { immediate: true }
@@ -176,16 +178,14 @@ watch(
 <template>
   <div class="qr-content-form-card">
     <div class="card-header">
-      <h3 class="card-title">Contenu</h3>
+      <h3 class="card-title">1. Contenu du QR Code</h3>
     </div>
 
-    <!-- Sélecteur de types -->
     <QrTypeSelector
       :active-type="currentContent.type"
       @select="handleTypeSelect"
     />
 
-    <!-- Formulaire dynamique -->
     <div class="active-form-container">
       <FormUrl
         v-if="currentContent.type === 'URL'"
@@ -263,25 +263,27 @@ watch(
 <style scoped>
 .qr-content-form-card {
   background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 1.25rem;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .card-header {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.9rem;
 }
 
 .card-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--color-text);
   margin: 0;
 }
 
 .active-form-container {
-  padding-top: 1rem;
-  border-top: 1px solid var(--color-border);
+  padding-top: 1.15rem;
+  border-top: 1.5px solid var(--color-border);
 }
 </style>

@@ -84,7 +84,7 @@ const updateField = <K extends keyof QrSmsData>(key: K, value: QrSmsData[K]) => 
   width: 100%;
   padding: 0.75rem 1rem;
   font-size: 0.95rem;
-  border: 1px solid var(--color-border);
+  border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md);
   background-color: var(--color-bg);
   color: var(--color-text);
@@ -93,17 +93,18 @@ const updateField = <K extends keyof QrSmsData>(key: K, value: QrSmsData[K]) => 
 
 .form-control:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
 .form-control.has-error {
-  border-color: #ef4444;
+  border-color: var(--color-danger);
 }
 
 .error-message {
   font-size: 0.8rem;
-  color: #ef4444;
+  color: var(--color-danger);
+  font-weight: 600;
   margin: 0;
 }
 </style>

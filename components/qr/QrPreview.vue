@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useQrEngine } from '~/composables/useQrEngine'
+import { QrEngineService } from '~/services/qr/qr-engine.service'
 import { DEFAULT_QR_DESIGN, type QrDesign } from '~/types/design'
-import { ShieldCheck, AlertTriangle, Maximize2, X, RefreshCw } from 'lucide-vue-next'
+import { ShieldCheck, AlertTriangle, Maximize2, X } from 'lucide-vue-next'
 
 interface Props {
   data?: string
@@ -16,7 +17,9 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const qrContainerRef = ref<HTMLElement | null>(null)
+const zoomQrContainerRef = ref<HTMLElement | null>(null)
 const isZoomOpen = ref(false)
+const zoomEngineService = new QrEngineService()
 
 const {
   isReady,
@@ -28,15 +31,18 @@ const {
 } = useQrEngine()
 
 let isMounting = false
+let hasPendingSyncDuringMount = false
 
 const triggerMount = async () => {
   await nextTick()
   if (qrContainerRef.value && !isReady.value && !isMounting) {
     isMounting = true
+    const mountedData = props.data
+    const mountedDesign = props.design ?? DEFAULT_QR_DESIGN
     try {
       await mountQrCode(qrContainerRef.value, {
-        data: props.data,
-        design: props.design ?? DEFAULT_QR_DESIGN,
+        data: mountedData,
+        design: mountedDesign,
         width: props.size,
         height: props.size
       })
@@ -45,14 +51,64 @@ const triggerMount = async () => {
     } finally {
       isMounting = false
     }
+
+    // Si props.data ou props.design ont évolué pendant le chargement initial du moteur, resynchroniser immédiatement
+    if (
+      isReady.value &&
+      (hasPendingSyncDuringMount || props.data !== mountedData || props.design !== mountedDesign)
+    ) {
+      hasPendingSyncDuringMount = false
+      updateQrCode(props.data, props.design ?? DEFAULT_QR_DESIGN)
+    }
+  }
+}
+
+const renderZoomQr = async () => {
+  await nextTick()
+  if (!isZoomOpen.value || !zoomQrContainerRef.value) return
+  try {
+    await zoomEngineService.init(zoomQrContainerRef.value, {
+      data: props.data,
+      design: props.design ?? DEFAULT_QR_DESIGN,
+      width: 340,
+      height: 340,
+      type: 'svg'
+    })
+  } catch (err: unknown) {
+    console.error('[QrPreview] Erreur rendu modale zoom:', err)
+  }
+}
+
+const openZoomModal = async () => {
+  isZoomOpen.value = true
+  await renderZoomQr()
+}
+
+const closeZoomModal = () => {
+  isZoomOpen.value = false
+  zoomEngineService.destroy()
+}
+
+const handleKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape' && isZoomOpen.value) {
+    closeZoomModal()
   }
 }
 
 onMounted(async () => {
   await triggerMount()
+  if (typeof window !== 'undefined') {
+    window.addEventListener('keydown', handleKeydown)
+  }
 })
 
-// Surveillance réactive du conteneur DOM au cas où ClientOnly monte avec un micro-décalage
+onUnmounted(() => {
+  zoomEngineService.destroy()
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('keydown', handleKeydown)
+  }
+})
+
 watch(qrContainerRef, async (newEl) => {
   if (newEl && !isReady.value) {
     await triggerMount()
@@ -62,15 +118,27 @@ watch(qrContainerRef, async (newEl) => {
 watch(() => props.data, (newData) => {
   if (isReady.value) {
     updateQrCode(newData, props.design ?? DEFAULT_QR_DESIGN)
+  } else if (isMounting) {
+    hasPendingSyncDuringMount = true
+  }
+  if (isZoomOpen.value) {
+    renderZoomQr()
   }
 })
 
 watch(() => props.design, async (newDesign) => {
   if (newDesign) {
     if (!isReady.value) {
-      await triggerMount()
+      if (isMounting) {
+        hasPendingSyncDuringMount = true
+      } else {
+        await triggerMount()
+      }
     } else {
       updateQrCode(props.data, newDesign)
+    }
+    if (isZoomOpen.value) {
+      renderZoomQr()
     }
   }
 }, { deep: true })
@@ -85,8 +153,8 @@ watch(() => props.design, async (newDesign) => {
           class="frame-presentation-box"
           :class="[`frame-style--${props.design?.frame?.type ?? 'none'}`]"
           :style="{
-            '--frame-color': props.design?.frame?.frameColor ?? '#3b82f6',
-            '--text-color': props.design?.frame?.textColor ?? '#ffffff'
+            '--frame-color': props.design?.frame?.frameColor ?? '#1a1523',
+            '--text-color': props.design?.frame?.textColor ?? '#fff8ee'
           }"
         >
           <!-- Bandeau supérieur pour top-badge ou speech-bubble -->
@@ -120,16 +188,16 @@ watch(() => props.design, async (newDesign) => {
           class="zoom-btn"
           title="Agrandir pour tester le scan direct"
           aria-label="Agrandir le QR code en plein écran"
-          @click="isZoomOpen = true"
+          @click="openZoomModal"
         >
-          <Maximize2 :size="16" />
+          <Maximize2 :size="15" />
         </button>
       </div>
 
       <!-- Jauge de qualité de scan / Contraste -->
       <div class="quality-bar" :class="`quality-bar--${scannabilityScore.status}`">
-        <ShieldCheck v-if="scannabilityScore.status === 'success'" :size="16" />
-        <AlertTriangle v-else :size="16" />
+        <ShieldCheck v-if="scannabilityScore.status === 'success'" :size="15" />
+        <AlertTriangle v-else :size="15" />
         <span class="quality-text">
           Lisibilité : <strong>{{ scannabilityScore.label }}</strong>
           <span class="contrast-val">({{ contrastRatio.toFixed(1) }}:1)</span>
@@ -137,31 +205,52 @@ watch(() => props.design, async (newDesign) => {
       </div>
     </div>
 
-    <!-- Modale Zoom Plein Écran -->
+    <!-- Modale Zoom Plein Écran avec véritable QR code agrandi -->
     <div
       v-if="isZoomOpen"
       class="zoom-modal-backdrop"
       role="dialog"
       aria-modal="true"
       aria-label="QR Code Agrandissement"
-      @click.self="isZoomOpen = false"
+      @click.self="closeZoomModal"
     >
       <div class="zoom-modal-content">
         <button
           type="button"
           class="modal-close-btn"
           aria-label="Fermer"
-          @click="isZoomOpen = false"
+          @click="closeZoomModal"
         >
-          <X :size="24" />
+          <X :size="20" />
         </button>
         <div class="zoom-instructions">
           Scannez directement cet écran avec votre smartphone
         </div>
         <div class="zoom-qr-display">
-          <!-- Affiche le contenu en grand -->
-          <div class="zoom-data-preview">{{ data }}</div>
+          <div
+            class="frame-presentation-box"
+            :class="[`frame-style--${props.design?.frame?.type ?? 'none'}`]"
+            :style="{
+              '--frame-color': props.design?.frame?.frameColor ?? '#1a1523',
+              '--text-color': props.design?.frame?.textColor ?? '#fff8ee'
+            }"
+          >
+            <div
+              v-if="props.design?.frame?.type === 'top-badge' || props.design?.frame?.type === 'speech-bubble'"
+              class="frame-banner frame-banner--top"
+            >
+              <span>{{ props.design?.frame?.text || 'SCANNEZ-MOI' }}</span>
+            </div>
+            <div ref="zoomQrContainerRef" class="zoom-qr-host" />
+            <div
+              v-if="props.design?.frame?.type === 'bottom-badge' || props.design?.frame?.type === 'full-card'"
+              class="frame-banner frame-banner--bottom"
+            >
+              <span>{{ props.design?.frame?.text || 'SCANNEZ-MOI' }}</span>
+            </div>
+          </div>
         </div>
+        <div class="zoom-data-preview">{{ data }}</div>
       </div>
     </div>
   </div>
@@ -174,28 +263,30 @@ watch(() => props.design, async (newDesign) => {
 
 .preview-card {
   background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 1.25rem;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 1.35rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1rem;
+  box-shadow: var(--shadow-sm);
   transition: all var(--transition-fast);
 }
 
 .preview-stage {
   position: relative;
   width: 100%;
-  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  min-height: 240px;
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: #ffffff;
-  border: 1px solid #e4e4e7;
-  border-radius: var(--radius-md);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-lg);
   padding: 1rem;
-  box-shadow: inset 0 1px 3px 0 rgb(0 0 0 / 0.04);
+  box-shadow: inset 0 1px 4px rgba(26, 21, 35, 0.04);
 }
 
 .qr-canvas-host {
@@ -203,29 +294,23 @@ watch(() => props.design, async (newDesign) => {
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 100%;
   transition: opacity 150ms ease;
 }
 
 .qr-canvas-host :deep(svg),
 .qr-canvas-host :deep(canvas),
-.qr-target-element :deep(svg),
-.qr-target-element :deep(canvas) {
+.zoom-qr-host :deep(svg),
+.zoom-qr-host :deep(canvas) {
+  display: block;
+  width: 100% !important;
+  height: auto !important;
   max-width: 100%;
-  max-height: 100%;
+  aspect-ratio: 1 / 1;
   object-fit: contain;
 }
 
-.qr-target-element {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-}
-
 .qr-canvas-host--rendering {
-  opacity: 0.7;
+  opacity: 1;
 }
 
 /* Styles des cadres décoratifs */
@@ -235,6 +320,7 @@ watch(() => props.design, async (newDesign) => {
   align-items: center;
   justify-content: center;
   width: 100%;
+  max-width: 100%;
   transition: all 0.25s ease;
 }
 
@@ -246,21 +332,12 @@ watch(() => props.design, async (newDesign) => {
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  word-break: break-word;
   color: var(--text-color);
   background-color: var(--frame-color);
 }
 
-.frame-style--bottom-badge {
-  border: 4px solid var(--frame-color);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  background-color: #ffffff;
-}
-
-.frame-style--bottom-badge .qr-canvas-host {
-  padding: 0.75rem 0.75rem 0.25rem 0.75rem;
-}
-
+.frame-style--bottom-badge,
 .frame-style--top-badge {
   border: 4px solid var(--frame-color);
   border-radius: var(--radius-lg);
@@ -268,7 +345,13 @@ watch(() => props.design, async (newDesign) => {
   background-color: #ffffff;
 }
 
-.frame-style--top-badge .qr-canvas-host {
+.frame-style--bottom-badge .qr-canvas-host,
+.frame-style--bottom-badge .zoom-qr-host {
+  padding: 0.75rem 0.75rem 0.25rem 0.75rem;
+}
+
+.frame-style--top-badge .qr-canvas-host,
+.frame-style--top-badge .zoom-qr-host {
   padding: 0.25rem 0.75rem 0.75rem 0.75rem;
 }
 
@@ -303,7 +386,8 @@ watch(() => props.design, async (newDesign) => {
   border-radius: var(--radius-xl);
 }
 
-.frame-style--full-card .qr-canvas-host {
+.frame-style--full-card .qr-canvas-host,
+.frame-style--full-card .zoom-qr-host {
   background-color: #ffffff;
   border-radius: var(--radius-md);
   padding: 0.5rem;
@@ -316,101 +400,58 @@ watch(() => props.design, async (newDesign) => {
 
 .zoom-btn {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
+  top: 0.6rem;
+  right: 0.6rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 1.85rem;
-  height: 1.85rem;
+  width: 2rem;
+  height: 2rem;
   background-color: #ffffff;
-  color: #18181b;
-  border-radius: var(--radius-xs);
-  border: 1px solid #e4e4e7;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  color: #1a1523;
+  border-radius: 999px;
+  border: 2px solid #1a1523;
+  box-shadow: 0 2px 6px rgba(26, 21, 35, 0.12);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: transform var(--transition-spring), background-color var(--transition-fast);
 }
 
 .zoom-btn:hover {
-  background-color: #f4f4f5;
-  color: #09090b;
-}
-
-/* Skeleton de chargement SSR */
-.preview-skeleton {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--color-bg);
-  border-radius: var(--radius-sm);
-}
-
-.skeleton-corner {
-  position: absolute;
-  width: 28px;
-  height: 28px;
-  border: 5px solid var(--color-border);
-  border-radius: 4px;
-}
-
-.skeleton-tl { top: 10px; left: 10px; }
-.skeleton-tr { top: 10px; right: 10px; }
-.skeleton-bl { bottom: 10px; left: 10px; }
-
-.skeleton-spinner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--color-text-muted);
-}
-
-.spin-icon {
-  animation: spin 1.5s linear infinite;
-  color: var(--color-primary);
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  background-color: #d9f24a;
+  transform: scale(1.06);
 }
 
 /* Jauge de lisibilité */
 .quality-bar {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.2rem 0.65rem;
-  font-size: 0.78rem;
+  gap: 0.45rem;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.8rem;
+  font-weight: 600;
   border-radius: var(--radius-full);
 }
 
 .quality-bar--success {
-  background-color: rgba(34, 197, 94, 0.1);
+  background-color: var(--color-success-bg);
   color: var(--color-success);
-  border: 1px solid rgba(34, 197, 94, 0.2);
+  border: 1.5px solid color-mix(in srgb, var(--color-success) 30%, transparent);
 }
 
 .quality-bar--warning {
-  background-color: rgba(245, 158, 11, 0.1);
+  background-color: var(--color-warning-bg);
   color: var(--color-warning);
-  border: 1px solid rgba(245, 158, 11, 0.2);
+  border: 1.5px solid color-mix(in srgb, var(--color-warning) 35%, transparent);
 }
 
 .quality-bar--danger {
-  background-color: rgba(239, 68, 68, 0.1);
+  background-color: var(--color-danger-bg);
   color: var(--color-danger);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  border: 1.5px solid color-mix(in srgb, var(--color-danger) 35%, transparent);
 }
 
 .contrast-val {
-  font-weight: normal;
+  font-weight: 500;
   opacity: 0.85;
 }
 
@@ -418,51 +459,93 @@ watch(() => props.design, async (newDesign) => {
 .zoom-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 100;
-  background-color: rgba(0, 0, 0, 0.75);
+  z-index: 200;
+  background-color: rgba(26, 21, 35, 0.78);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(6px);
 }
 
 .zoom-modal-content {
   position: relative;
   background-color: var(--color-surface);
-  border-radius: var(--radius-lg);
-  padding: 2.5rem;
-  max-width: 500px;
+  border: 3px solid #1a1523;
+  border-radius: var(--radius-2xl);
+  padding: 2.25rem 2rem;
+  max-width: 480px;
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1.25rem;
   box-shadow: var(--shadow-lg);
+}
+
+.dark .zoom-modal-content {
+  border-color: var(--color-accent);
 }
 
 .modal-close-btn {
   position: absolute;
   top: 1rem;
   right: 1rem;
-  color: var(--color-text-muted);
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  background-color: var(--color-bg);
+  border: 2px solid var(--color-border);
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .modal-close-btn:hover {
-  color: var(--color-text);
+  background-color: #d9f24a;
+  color: #1a1523;
+  border-color: #1a1523;
 }
 
 .zoom-instructions {
-  font-size: 1rem;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
   font-weight: 700;
   text-align: center;
+  color: var(--color-text);
+  padding-right: 1.5rem;
+}
+
+.zoom-qr-display {
+  width: 100%;
+  max-width: 340px;
+  background-color: #ffffff;
+  border-radius: var(--radius-lg);
+  padding: 0.75rem;
+  border: 2px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.zoom-qr-host {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 
 .zoom-data-preview {
-  font-size: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
   color: var(--color-text-muted);
+  background-color: var(--color-bg);
+  border: 1.5px solid var(--color-border);
+  padding: 0.65rem 0.9rem;
+  border-radius: var(--radius-md);
   word-break: break-all;
   text-align: center;
-  max-width: 400px;
+  width: 100%;
 }
 </style>

@@ -21,7 +21,7 @@ const emit = defineEmits<{
 type DesignSubTab = 'shapes' | 'colors' | 'logo' | 'frame' | 'advanced'
 const activeSubTab = ref<DesignSubTab>('shapes')
 
-const tabs: { id: DesignSubTab; label: string; icon: any }[] = [
+const tabs: { id: DesignSubTab; label: string; icon: unknown }[] = [
   { id: 'shapes', label: 'Formes', icon: Shapes },
   { id: 'colors', label: 'Couleurs', icon: Palette },
   { id: 'logo', label: 'Logo', icon: ImageIcon },
@@ -38,7 +38,7 @@ const handleDesignUpdate = (updatedDesign: QrDesign) => {
 <template>
   <div class="qr-design-card">
     <div class="card-header">
-      <h3 class="card-title">Design & Personnalisation</h3>
+      <h3 class="card-title">2. Design & Personnalisation</h3>
     </div>
 
     <!-- Navigation par sous-onglets -->
@@ -52,7 +52,7 @@ const handleDesignUpdate = (updatedDesign: QrDesign) => {
         :class="['sub-tab-btn', { active: activeSubTab === t.id }]"
         @click="activeSubTab = t.id"
       >
-        <component :is="t.icon" :size="14" aria-hidden="true" />
+        <component :is="t.icon" :size="15" aria-hidden="true" />
         <span>{{ t.label }}</span>
       </button>
     </div>
@@ -95,44 +95,45 @@ const handleDesignUpdate = (updatedDesign: QrDesign) => {
 <style scoped>
 .qr-design-card {
   background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: 1.25rem;
-  margin-top: 1rem;
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .card-header {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.9rem;
 }
 
 .card-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--color-text);
   margin: 0;
 }
 
 .sub-tab-bar {
   display: flex;
-  gap: 0.25rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--color-border);
-  margin-bottom: 1rem;
+  gap: 0.4rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1.5px solid var(--color-border);
+  margin-bottom: 1.15rem;
   overflow-x: auto;
 }
 
 .sub-tab-btn {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.4rem 0.7rem;
-  font-size: 0.8rem;
-  font-weight: 500;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.84rem;
+  font-weight: 600;
   color: var(--color-text-muted);
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-border);
+  border-radius: 999px;
   cursor: pointer;
   white-space: nowrap;
   transition: all var(--transition-fast);
@@ -140,14 +141,14 @@ const handleDesignUpdate = (updatedDesign: QrDesign) => {
 
 .sub-tab-btn:hover {
   color: var(--color-text);
-  background-color: var(--color-surface-hover);
+  border-color: var(--color-border-hover);
 }
 
 .sub-tab-btn.active {
-  color: var(--color-primary);
-  background-color: var(--color-primary-light);
-  border-color: var(--color-primary);
-  font-weight: 600;
+  color: #1a1523;
+  background-color: #d9f24a;
+  border-color: #1a1523;
+  font-weight: 700;
 }
 
 .design-tab-content {

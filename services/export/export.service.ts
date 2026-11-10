@@ -102,7 +102,7 @@ export class ExportService {
 
       // Si un cadre est configuré, on enrichit le SVG
       if (design.frame && design.frame.type !== 'none') {
-        const svgString = await rawBlob.text()
+        const svgString = typeof rawBlob.text === 'function' ? await rawBlob.text() : String(rawBlob)
         const composedSvg = FrameComposerService.composeSvg(svgString, design.frame)
         return new Blob([composedSvg], { type: 'image/svg+xml;charset=utf-8' })
       }
@@ -128,37 +128,51 @@ export class ExportService {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const qrInstance = new (QRCodeStyling as any)(qrConfig)
 
-    // Si un cadre est présent, on doit intercepter le canvas source pour y ajouter le cadre
+    // Si un cadre est présent, attendre le dessin complet du canvas avant de composer le cadre
     if (effectiveDesign.frame && effectiveDesign.frame.type !== 'none') {
-      const tempContainer = document.createElement('div')
-      tempContainer.style.position = 'absolute'
-      tempContainer.style.left = '-9999px'
-      document.body.appendChild(tempContainer)
+      let sourceCanvas: HTMLCanvasElement | null = null
 
-      try {
-        qrInstance.append(tempContainer)
-        // Attendre que le canvas soit dessiné
-        const sourceCanvas = tempContainer.querySelector('canvas')
-        if (sourceCanvas) {
-          const composedCanvas = FrameComposerService.composeCanvas(sourceCanvas, effectiveDesign.frame)
-          const mimeType = format === 'jpeg' ? 'image/jpeg' : format === 'webp' ? 'image/webp' : 'image/png'
-          const quality = format === 'jpeg' ? 0.95 : format === 'webp' ? 0.92 : undefined
+      if (typeof qrInstance._getElement === 'function') {
+        const el = await qrInstance._getElement(format)
+        if (el && el.tagName === 'CANVAS') {
+          sourceCanvas = el as HTMLCanvasElement
+        }
+      }
 
-          return await new Promise<Blob>((resolve, reject) => {
-            composedCanvas.toBlob(
-              (blob) => {
-                if (blob) resolve(blob)
-                else reject(new Error('Échec de la conversion du canvas en image.'))
-              },
-              mimeType,
-              quality
-            )
-          })
+      if (!sourceCanvas) {
+        const tempContainer = document.createElement('div')
+        tempContainer.style.position = 'absolute'
+        tempContainer.style.left = '-9999px'
+        document.body.appendChild(tempContainer)
+
+        try {
+          qrInstance.append(tempContainer)
+          if (qrInstance._canvasDrawingPromise) {
+            await qrInstance._canvasDrawingPromise
+          }
+          sourceCanvas = tempContainer.querySelector('canvas')
+        } finally {
+          if (tempContainer.parentNode) {
+            tempContainer.parentNode.removeChild(tempContainer)
+          }
         }
-      } finally {
-        if (tempContainer.parentNode) {
-          tempContainer.parentNode.removeChild(tempContainer)
-        }
+      }
+
+      if (sourceCanvas) {
+        const composedCanvas = FrameComposerService.composeCanvas(sourceCanvas, effectiveDesign.frame)
+        const mimeType = format === 'jpeg' ? 'image/jpeg' : format === 'webp' ? 'image/webp' : 'image/png'
+        const quality = format === 'jpeg' ? 0.95 : format === 'webp' ? 0.92 : undefined
+
+        return await new Promise<Blob>((resolve, reject) => {
+          composedCanvas.toBlob(
+            (blob) => {
+              if (blob) resolve(blob)
+              else reject(new Error('Échec de la conversion du canvas en image.'))
+            },
+            mimeType,
+            quality
+          )
+        })
       }
     }
 

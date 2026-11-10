@@ -38,10 +38,10 @@ const updateMargin = (margin: number) => {
     <div class="section-block">
       <div class="block-header">
         <ShieldCheck :size="16" aria-hidden="true" />
-        <h4 class="block-title">Niveau de correction d'erreur (Redondance Reed-Solomon)</h4>
+        <h4 class="block-title">Niveau de correction d’erreur (Reed-Solomon)</h4>
       </div>
       <p class="section-hint">
-        Permet au QR code de rester lisible même s'il est partiellement endommagé ou masqué par un logo.
+        Permet au QR code de rester lisible même s’il est partiellement endommagé ou masqué par un logo.
       </p>
       <div class="levels-grid">
         <button
@@ -64,7 +64,7 @@ const updateMargin = (margin: number) => {
     <div class="section-block">
       <div class="block-header">
         <Sliders :size="16" aria-hidden="true" />
-        <h4 class="block-title">Zone de silence (Marge blanche extérieure)</h4>
+        <h4 class="block-title">Zone de silence (Marge extérieure)</h4>
       </div>
       <div class="slider-row">
         <div class="slider-header">
@@ -79,9 +79,9 @@ const updateMargin = (margin: number) => {
           class="slider-control"
           :value="props.design.margin"
           @input="updateMargin(parseInt(($event.target as HTMLInputElement).value, 10))"
-        />
+        >
         <span class="slider-hint">
-          Une marge minimale de 10 px est conseillée pour que les capteurs optiques distinguent le QR code de son arrière-plan.
+          Une marge minimale de 10 px est conseillée pour que les capteurs distinguent le QR code de son arrière-plan.
         </span>
       </div>
     </div>
@@ -92,30 +92,31 @@ const updateMargin = (margin: number) => {
 .advanced-settings {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 1.15rem;
 }
 
 .section-block {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 0.55rem;
 }
 
 .block-header {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 0.45rem;
+  color: var(--color-text);
 }
 
 .block-title {
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-text);
   margin: 0;
 }
 
 .section-hint {
-  font-size: 0.775rem;
+  font-size: 0.8rem;
   color: var(--color-text-muted);
   margin: 0;
 }
@@ -123,66 +124,76 @@ const updateMargin = (margin: number) => {
 .levels-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-2);
+  gap: 0.5rem;
 }
 
 .level-card {
   display: flex;
   flex-direction: column;
-  padding: 0.65rem 0.85rem;
-  background-color: var(--color-bg-alt);
-  border: 1px solid var(--color-border);
+  padding: 0.7rem 0.85rem;
+  background-color: var(--color-bg);
+  border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
   text-align: left;
 }
 
 .level-card:hover {
-  border-color: var(--color-primary);
-  background-color: var(--color-bg);
+  border-color: var(--color-border-hover);
+  background-color: var(--color-surface-hover);
 }
 
 .level-card.active {
-  background-color: rgba(99, 102, 241, 0.1);
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 1px var(--color-primary);
+  background-color: #d9f24a;
+  border-color: #1a1523;
+  box-shadow: 0 2px 0 #1a1523;
 }
 
 .level-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.5rem;
 }
 
 .level-name {
-  font-size: 0.825rem;
-  font-weight: 600;
+  font-size: 0.84rem;
+  font-weight: 700;
   color: var(--color-text);
 }
 
 .level-card.active .level-name {
-  color: var(--color-primary);
+  color: #1a1523;
 }
 
 .level-percent {
-  font-size: 0.75rem;
+  font-size: 0.76rem;
   font-weight: 700;
-  color: var(--color-primary);
+  color: var(--color-text-muted);
+}
+
+.level-card.active .level-percent {
+  color: #1a1523;
 }
 
 .level-desc {
-  font-size: 0.725rem;
+  font-size: 0.74rem;
   color: var(--color-text-muted);
   margin-top: 0.2rem;
+}
+
+.level-card.active .level-desc {
+  color: #332c3f;
 }
 
 .slider-row {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  padding: 0.75rem;
-  background-color: var(--color-bg-alt);
+  gap: 0.4rem;
+  padding: 0.85rem;
+  background-color: var(--color-bg);
+  border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md);
 }
 
@@ -190,26 +201,31 @@ const updateMargin = (margin: number) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.8rem;
+  font-size: 0.84rem;
 }
 
 .slider-title {
-  font-weight: 500;
+  font-weight: 600;
   color: var(--color-text);
 }
 
 .slider-val {
-  color: var(--color-text-muted);
+  font-weight: 700;
+  color: var(--color-text);
 }
 
 .slider-control {
   width: 100%;
-  accent-color: var(--color-primary);
+  accent-color: #1a1523;
   cursor: pointer;
 }
 
+.dark .slider-control {
+  accent-color: #d9f24a;
+}
+
 .slider-hint {
-  font-size: 0.725rem;
+  font-size: 0.75rem;
   color: var(--color-text-muted);
 }
 </style>

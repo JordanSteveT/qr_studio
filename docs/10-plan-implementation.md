@@ -149,7 +149,7 @@ flowchart TD
   - Toutes les pages sont pré-rendues statiquement en HTML lors du build.
   - Présence des balises canoniques, balises OpenGraph et données structurées Schema.org (`HowTo`, `SoftwareApplication`).
   - Boutons d'action dans les guides redirigeant vers l'éditeur pré-configuré (ex. `/create?type=wifi`).
-- **Statut :** **En cours** (Landing page `pages/index.vue` intégralement refondue avec balisage SEO riche, microdonnées Schema.org `SoftwareApplication` & `FAQPage`, section 10 formats de QR codes, tableau comparatif, guide d'impression vectorielle et design sobre épuré sans artifice IA).
+- **Statut :** **En cours** (Landing page `pages/index.vue` intégralement refondue selon le système de design `QRStudio` : typographies locales Pally & Onest, palette crème `#fff8ee` / encre `#1a1523` / lime `#d9f24a` / pastels, sélecteur interactif de cas d'usage métier, marquee, 3 étapes, section confidentialité sombre, 10 formats, comparatif, guide PAO, témoignages, FAQ accordéon et CTA final ; balisage SEO complet & microdonnées Schema.org `SoftwareApplication` & `FAQPage`).
 - **Définition de terminé :** Contenu éditorial intégré, maillage interne en place, sitemap généré.
 
 ---

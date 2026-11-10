@@ -24,7 +24,7 @@ const emit = defineEmits<{
 interface TypeDefinition {
   id: QrContentType
   label: string
-  icon: any
+  icon: unknown
   description: string
 }
 
@@ -59,7 +59,7 @@ const handleSelect = (type: QrContentType) => {
         :title="t.description"
         @click="handleSelect(t.id)"
       >
-        <component :is="t.icon" class="type-icon" :size="18" aria-hidden="true" />
+        <component :is="t.icon" class="type-icon" :size="17" aria-hidden="true" />
         <span class="type-label">{{ t.label }}</span>
       </button>
     </div>
@@ -69,26 +69,26 @@ const handleSelect = (type: QrContentType) => {
 <style scoped>
 .qr-type-selector {
   width: 100%;
-  margin-bottom: 1rem;
+  margin-bottom: 1.1rem;
 }
 
 .type-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 0.4rem;
+  grid-template-columns: repeat(auto-fill, minmax(126px, 1fr));
+  gap: 0.45rem;
 }
 
 .type-pill {
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  padding: 0.45rem 0.65rem;
-  background-color: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.75rem;
+  background-color: var(--color-bg);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
   color: var(--color-text-muted);
-  font-size: 0.8rem;
-  font-weight: 500;
+  font-size: 0.82rem;
+  font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-fast);
   text-align: left;
@@ -101,15 +101,16 @@ const handleSelect = (type: QrContentType) => {
 }
 
 .type-pill.active {
-  background-color: var(--color-primary-light);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  font-weight: 600;
+  background-color: #d9f24a;
+  border-color: #1a1523;
+  color: #1a1523;
+  font-weight: 700;
+  box-shadow: 0 2px 0 #1a1523;
 }
 
 .type-icon {
   flex-shrink: 0;
-  opacity: 0.8;
+  opacity: 0.85;
 }
 
 .type-pill.active .type-icon {

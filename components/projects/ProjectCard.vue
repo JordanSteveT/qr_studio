@@ -16,7 +16,8 @@ import {
   Phone,
   MapPin,
   CalendarDays,
-  Code
+  Code,
+  QrCode
 } from 'lucide-vue-next'
 
 const props = defineProps<{
@@ -53,18 +54,34 @@ const contentTypeIcon = computed(() => {
     default: return Code
   }
 })
+
+const badgeBgColor = computed(() => {
+  switch (props.project.content.type) {
+    case 'URL': return '#d9f24a'
+    case 'WIFI': return '#9cd2ff'
+    case 'VCARD': return '#ffb3d9'
+    case 'EMAIL': return '#ffd84d'
+    case 'SMS': return '#a8e6c3'
+    case 'EVENT': return '#c9b6ff'
+    default: return '#ffd84d'
+  }
+})
 </script>
 
 <template>
   <div class="project-card" :data-id="project.id">
-    <!-- Vignette miniature du QR code -->
+    <!-- Vignette miniature du QR code (avec fallback propre si vide) -->
     <div class="card-preview" @click="emit('open', project.id)">
       <img
+        v-if="project.thumbnailDataUrl"
         :src="project.thumbnailDataUrl"
         :alt="`Aperçu ${project.name}`"
         class="thumbnail-img"
         loading="lazy"
       >
+      <div v-else class="thumbnail-fallback" aria-label="Aperçu générique QR Code">
+        <QrCode :size="68" :style="{ color: project.design?.dots?.color || '#1a1523' }" />
+      </div>
       <div class="preview-overlay">
         <span class="open-badge">
           <ExternalLink :size="14" />
@@ -76,7 +93,7 @@ const contentTypeIcon = computed(() => {
     <!-- Contenu descriptif du projet -->
     <div class="card-body">
       <div class="card-header-row">
-        <div class="badge-type">
+        <div class="badge-type" :style="{ backgroundColor: badgeBgColor }">
           <component :is="contentTypeIcon" :size="12" />
           <span>{{ project.content.type }}</span>
         </div>
@@ -106,6 +123,7 @@ const contentTypeIcon = computed(() => {
           type="button"
           class="action-btn"
           title="Dupliquer ce projet"
+          aria-label="Dupliquer ce projet"
           @click="emit('duplicate', project.id)"
         >
           <Copy :size="14" />
@@ -115,6 +133,7 @@ const contentTypeIcon = computed(() => {
           type="button"
           class="action-btn"
           title="Exporter la configuration JSON"
+          aria-label="Exporter en JSON"
           @click="emit('export-json', project)"
         >
           <Download :size="14" />
@@ -124,6 +143,7 @@ const contentTypeIcon = computed(() => {
           type="button"
           class="action-btn action-btn--danger"
           title="Supprimer définitivement"
+          aria-label="Supprimer ce projet"
           @click="emit('delete', project.id)"
         >
           <Trash2 :size="14" />
@@ -136,19 +156,19 @@ const contentTypeIcon = computed(() => {
 <style scoped>
 .project-card {
   background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-xl);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
-  transition: all var(--transition-fast);
+  transition: transform var(--transition-spring), border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .project-card:hover {
-  transform: translateY(-2px);
+  transform: translateY(-4px);
   box-shadow: var(--shadow-md);
-  border-color: var(--color-primary);
+  border-color: var(--color-border-hover);
 }
 
 .card-preview {
@@ -159,8 +179,8 @@ const contentTypeIcon = computed(() => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  border-bottom: 1px solid var(--color-border);
-  min-height: 160px;
+  border-bottom: 1.5px solid var(--color-border);
+  min-height: 168px;
 }
 
 .thumbnail-img {
@@ -170,6 +190,17 @@ const contentTypeIcon = computed(() => {
   transition: transform var(--transition-fast);
 }
 
+.thumbnail-fallback {
+  width: 128px;
+  height: 128px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #fff8ee;
+  border-radius: 16px;
+  border: 2px dashed #eadfce;
+}
+
 .card-preview:hover .thumbnail-img {
   transform: scale(1.05);
 }
@@ -177,7 +208,7 @@ const contentTypeIcon = computed(() => {
 .preview-overlay {
   position: absolute;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.25);
+  background-color: rgba(26, 21, 35, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -190,11 +221,12 @@ const contentTypeIcon = computed(() => {
 }
 
 .open-badge {
-  background-color: var(--color-surface);
-  color: var(--color-text);
-  font-size: 0.75rem;
+  background-color: #d9f24a;
+  color: #1a1523;
+  border: 2px solid #1a1523;
+  font-size: 0.78rem;
   font-weight: 700;
-  padding: 0.35rem 0.75rem;
+  padding: 0.4rem 0.85rem;
   border-radius: var(--radius-full);
   display: inline-flex;
   align-items: center;
@@ -203,7 +235,7 @@ const contentTypeIcon = computed(() => {
 }
 
 .card-body {
-  padding: 1rem;
+  padding: 1.15rem;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -220,11 +252,11 @@ const contentTypeIcon = computed(() => {
 .badge-type {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  background-color: rgba(59, 130, 246, 0.1);
-  color: var(--color-primary);
-  padding: 0.2rem 0.5rem;
-  border-radius: var(--radius-sm);
+  gap: 0.3rem;
+  color: #1a1523;
+  border: 1.5px solid #1a1523;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -234,10 +266,12 @@ const contentTypeIcon = computed(() => {
   align-items: center;
   gap: 0.25rem;
   color: var(--color-text-muted);
+  font-weight: 500;
 }
 
 .card-title {
-  font-size: 1rem;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
   font-weight: 700;
   color: var(--color-text);
   margin: 0;
@@ -247,17 +281,13 @@ const contentTypeIcon = computed(() => {
   text-overflow: ellipsis;
 }
 
-.card-title:hover {
-  color: var(--color-primary);
-}
-
 .card-actions {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.4rem;
   margin-top: auto;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--color-border);
+  padding-top: 0.65rem;
+  border-top: 1.5px solid var(--color-border-subtle);
 }
 
 .action-btn {
@@ -265,13 +295,13 @@ const contentTypeIcon = computed(() => {
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
-  padding: 0.4rem 0.6rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-  background-color: transparent;
+  padding: 0.45rem 0.65rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--color-border);
+  background-color: var(--color-bg);
   color: var(--color-text-muted);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.78rem;
+  font-weight: 700;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
@@ -279,25 +309,25 @@ const contentTypeIcon = computed(() => {
 .action-btn:hover {
   background-color: var(--color-surface-hover);
   color: var(--color-text);
-  border-color: var(--color-text-muted);
+  border-color: var(--color-border-hover);
 }
 
 .action-btn--primary {
   flex: 1;
-  background-color: var(--color-primary);
-  color: #ffffff;
-  border-color: var(--color-primary);
+  background-color: #d9f24a;
+  color: #1a1523;
+  border-color: #1a1523;
 }
 
 .action-btn--primary:hover {
-  background-color: var(--color-primary-hover);
-  color: #ffffff;
-  border-color: var(--color-primary-hover);
+  background-color: #c2de2c;
+  color: #1a1523;
+  border-color: #1a1523;
 }
 
 .action-btn--danger:hover {
-  color: var(--color-danger);
-  border-color: var(--color-danger);
-  background-color: rgba(239, 68, 68, 0.08);
+  color: #ffffff;
+  border-color: #1a1523;
+  background-color: #ff5a36;
 }
 </style>

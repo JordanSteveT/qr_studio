@@ -42,7 +42,7 @@
 | **NFR-002** | Poids du bundle JavaScript initial < 150 ko gzippé | P0 | `docs/03-architecture-technique.md` | `QR-001` | Analyse du build Vite/Nitro | Validé (69.6 ko gzippé) |
 | **NFR-003** | Compatibilité navigateurs modernes (Chrome, FF, Safari, Edge) | P0 | `docs/06-bibliotheques-et-dependances.md` | `QR-010` | Matrice de tests Playwright | À implémenter |
 | **SEC-001** | Zéro transmission des contenus QR à un serveur distant | P0 | `docs/07-securite-et-confidentialite.md` | `QR-003` | Audit réseau (0 requête sortante) | Validé (génération 100% in-browser) |
-| **SEC-002** | Neutralisation des scripts SVG téléversés (pas de v-html) | P0 | `docs/07-securite-et-confidentialite.md` | `QR-005` | Test unitaire injection XSS | Validé (isolation Canvas / img Blob sans v-html) |
+| **SEC-002** | Neutralisation des scripts SVG téléversés (pas de v-html) | P0 | `docs/07-securite-et-confidentialite.md` | `QR-005` | Test unitaire injection XSS | Validé (assainissement SVG dédié `svg-sanitizer.util.ts` + échappement XML `FrameComposerService` + validation Data URL Zod) |
 | **SEC-003** | Action « Tout effacer » purgeant IndexedDB et localStorage | P1 | `docs/07-securite-et-confidentialite.md` | `QR-007` | Test Dexie.delete() | Validé (clearAllProjects & modal confirmation) |
 | **SEO-001** | Pré-rendu statique SSG de 100 % des pages publiques | P0 | `docs/08-seo-publicite-et-monetisation.md` | `QR-008` | Contrôle des fichiers .html | En cours (Pages /, /create, /projects pré-rendues SSG) |
 | **SEO-002** | Données structurées Schema.org JSON-LD (SoftwareApp, HowTo) | P1 | `docs/08-seo-publicite-et-monetisation.md` | `QR-008` | Validateur Schema.org | Validé (JSON-LD SoftwareApplication & FAQPage sur /) |

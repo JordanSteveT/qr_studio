@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { QrCode, Shield, Heart } from 'lucide-vue-next'
+import { QrCode, ShieldCheck, Heart } from 'lucide-vue-next'
 
 const currentYear = new Date().getFullYear()
 </script>
@@ -8,35 +8,40 @@ const currentYear = new Date().getFullYear()
   <footer class="app-footer">
     <div class="footer-inner app-container">
       <div class="footer-top">
+        <!-- Colonne Marque & Engagement -->
         <div class="footer-brand">
-          <div class="footer-logo">
-            <QrCode :size="20" class="brand-icon" />
+          <NuxtLink to="/" class="footer-logo">
+            <div class="footer-logo-badge" aria-hidden="true">
+              <QrCode :size="18" />
+            </div>
             <span class="brand-name">QR Studio</span>
-          </div>
+          </NuxtLink>
           <p class="brand-desc">
-            Le générateur de QR codes gratuit, sans compte et 100 % local.
-            Conçu pour préserver votre vie privée et la pérennité de vos créations.
+            Générateur de QR codes professionnels, haute définition et 100 % confidentiel. Conçu pour durer sans serveur ni abonnement.
           </p>
           <div class="privacy-notice">
-            <Shield :size="16" class="notice-icon" />
-            <span>Aucune donnée saisie ne quitte votre navigateur.</span>
+            <ShieldCheck :size="15" class="notice-icon" aria-hidden="true" />
+            <span>100 % local • Zéro donnée transmise</span>
           </div>
         </div>
 
+        <!-- Colonnes de liens (style QRStudio footer) -->
         <div class="footer-links-grid">
           <div class="footer-col">
             <h4 class="col-title">Application</h4>
             <ul class="col-list">
-              <li><NuxtLink to="/create">Créateur de QR code</NuxtLink></li>
-              <li><NuxtLink to="/projects">Mes projets sauvegardés</NuxtLink></li>
+              <li><NuxtLink to="/create">Éditeur de QR code</NuxtLink></li>
+              <li><NuxtLink to="/projects">Mes projets locaux</NuxtLink></li>
+              <li><NuxtLink to="/#etapes">Comment ça marche</NuxtLink></li>
+              <li><NuxtLink to="/#usages">Cas d'usage métiers</NuxtLink></li>
             </ul>
           </div>
 
           <div class="footer-col">
-            <h4 class="col-title">Types de QR Codes</h4>
+            <h4 class="col-title">Formats populaires</h4>
             <ul class="col-list">
               <li><NuxtLink to="/create?type=URL">Lien Web & URL</NuxtLink></li>
-              <li><NuxtLink to="/create?type=WIFI">Connexion Wi-Fi sans contact</NuxtLink></li>
+              <li><NuxtLink to="/create?type=WIFI">Connexion Wi-Fi</NuxtLink></li>
               <li><NuxtLink to="/create?type=VCARD">Carte de visite vCard</NuxtLink></li>
               <li><NuxtLink to="/create?type=EMAIL">E-mail pré-rempli</NuxtLink></li>
               <li><NuxtLink to="/create?type=EVENT">Invitation Calendrier</NuxtLink></li>
@@ -44,12 +49,12 @@ const currentYear = new Date().getFullYear()
           </div>
 
           <div class="footer-col">
-            <h4 class="col-title">Ressources & Guides</h4>
+            <h4 class="col-title">Ressources</h4>
             <ul class="col-list">
-              <li><NuxtLink to="/#formats">Tous les formats pris en charge</NuxtLink></li>
-              <li><NuxtLink to="/#comparatif">Pourquoi le 100 % local ?</NuxtLink></li>
+              <li><NuxtLink to="/#formats">Les 10 formats</NuxtLink></li>
+              <li><NuxtLink to="/#comparatif">Statique vs Dynamique</NuxtLink></li>
+              <li><NuxtLink to="/#impression">Normes d'impression PAO</NuxtLink></li>
               <li><NuxtLink to="/#faq">Foire aux questions</NuxtLink></li>
-              <li><NuxtLink to="/#impression">Normes d'impression & PAO</NuxtLink></li>
             </ul>
           </div>
         </div>
@@ -57,10 +62,10 @@ const currentYear = new Date().getFullYear()
 
       <div class="footer-bottom">
         <p class="copyright">
-          &copy; {{ currentYear }} QR Studio. Tous droits réservés. Logiciel libre sous licence MIT.
+          &copy; {{ currentYear }} QR Studio — Générateur de QR codes libres, statiques et locaux.
         </p>
         <p class="made-with">
-          Fait avec <Heart :size="14" class="heart-icon" /> pour un web libre et privé.
+          Conçu avec <Heart :size="14" class="heart-icon" aria-hidden="true" /> pour un web libre et privé.
         </p>
       </div>
     </div>
@@ -70,96 +75,127 @@ const currentYear = new Date().getFullYear()
 <style scoped>
 .app-footer {
   margin-top: auto;
-  background-color: var(--color-surface);
-  border-top: 1px solid var(--color-border);
-  padding: 3rem 0 2rem;
-  color: var(--color-text-muted);
-  font-size: 0.9rem;
+  background-color: #1a1523;
+  color: #fff8ee;
+  padding: 4.5rem 0 2.5rem;
+  font-size: 0.92rem;
+  border-top: 3px solid #1a1523;
+}
+
+.dark .app-footer {
+  background-color: #100c17;
+  border-top: 1.5px solid #2b2438;
 }
 
 .footer-top {
   display: flex;
   flex-direction: column;
-  gap: 2.5rem;
-  padding-bottom: 2.5rem;
-  border-bottom: 1px solid var(--color-border);
+  gap: 3rem;
+  padding-bottom: 3rem;
+  border-bottom: 1.5px solid #332c3f;
 }
 
 @media (min-width: 860px) {
   .footer-top {
     flex-direction: row;
     justify-content: space-between;
+    gap: 4rem;
   }
 }
 
 .footer-brand {
-  max-width: 380px;
+  max-width: 340px;
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 1rem;
 }
 
 .footer-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.footer-logo-badge {
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 9px;
+  background-color: #d9f24a;
+  color: #1a1523;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 1.15rem;
+  justify-content: center;
+}
+
+.brand-name {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
   font-weight: 700;
-  color: var(--color-text);
+  letter-spacing: -0.02em;
+  color: #fff8ee;
 }
 
 .brand-desc {
   line-height: 1.6;
+  color: #c6bfd1;
+  font-size: 0.92rem;
 }
 
 .privacy-notice {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
+  padding: 0.4rem 0.85rem;
+  width: fit-content;
+  border-radius: 999px;
+  background-color: rgba(168, 230, 195, 0.12);
+  border: 1px solid rgba(168, 230, 195, 0.3);
   font-size: 0.8rem;
-  color: var(--color-success);
+  color: #a8e6c3;
   font-weight: 600;
 }
 
 .footer-links-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 2rem;
+  gap: 2.25rem;
 }
 
 @media (min-width: 640px) {
   .footer-links-grid {
     grid-template-columns: repeat(3, 1fr);
+    gap: 3rem;
   }
 }
 
 .col-title {
-  font-size: 0.85rem;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-text);
-  margin-bottom: 0.75rem;
+  color: #d9f24a;
+  letter-spacing: -0.01em;
+  margin-bottom: 0.9rem;
 }
 
 .col-list {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.6rem;
 }
 
 .col-list a {
-  color: var(--color-text-muted);
-  transition: color var(--transition-fast);
+  color: #fff8ee;
+  opacity: 0.85;
+  font-size: 0.9rem;
+  transition: opacity var(--transition-fast), color var(--transition-fast);
 }
 
 .col-list a:hover {
-  color: var(--color-primary);
-}
-
-.text-disabled {
-  opacity: 0.6;
+  opacity: 1;
+  color: #d9f24a;
 }
 
 .footer-bottom {
@@ -167,9 +203,10 @@ const currentYear = new Date().getFullYear()
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding-top: 1.5rem;
+  gap: 0.85rem;
+  padding-top: 2rem;
   font-size: 0.85rem;
+  color: #9e96aa;
 }
 
 @media (min-width: 640px) {
@@ -185,6 +222,6 @@ const currentYear = new Date().getFullYear()
 }
 
 .heart-icon {
-  color: var(--color-danger);
+  color: #ff5a36;
 }
 </style>

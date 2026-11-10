@@ -1,44 +1,18 @@
 import { ref, computed, onUnmounted, getCurrentInstance } from 'vue'
 import { QrEngineService, type QrRenderOptions } from '~/services/qr/qr-engine.service'
+import { calculateContrastRatio as calcWcagContrastRatio } from '~/services/qr/contrast-checker.service'
 import { DEFAULT_QR_DESIGN, type QrDesign } from '~/types/design'
-
-/**
- * Calcule la luminance relative d'une couleur hexadécimale (#RRGGBB)
- */
-function getLuminance(hexColor: string): number {
-  let hex = hexColor.replace('#', '')
-  if (hex.length === 3) {
-    hex = hex.split('').map(c => c + c).join('')
-  }
-  if (hex.length !== 6) return 0.5
-
-  const r = parseInt(hex.substring(0, 2), 16) / 255
-  const g = parseInt(hex.substring(2, 4), 16) / 255
-  const b = parseInt(hex.substring(4, 6), 16) / 255
-
-  const sRGB = [r, g, b].map(val => {
-    return val <= 0.03928 ? val / 12.92 : Math.pow((val + 0.055) / 1.055, 2.4)
-  })
-
-  const lumR = sRGB[0] ?? 0
-  const lumG = sRGB[1] ?? 0
-  const lumB = sRGB[2] ?? 0
-
-  return 0.2126 * lumR + 0.7152 * lumG + 0.0722 * lumB
-}
+import { deepClone } from '~/utils/clone.util'
 
 /**
  * Calcule le ratio de contraste entre deux couleurs hexadécimales (WCAG)
+ * avec gestion du fond transparent.
  */
 export function calculateContrastRatio(foreground: string, background: string): number {
   if (background === 'transparent') {
     return 10.0 // Valeur nominale pour fond transparent
   }
-  const lum1 = getLuminance(foreground)
-  const lum2 = getLuminance(background)
-  const brightest = Math.max(lum1, lum2)
-  const darkest = Math.min(lum1, lum2)
-  return (brightest + 0.05) / (darkest + 0.05)
+  return calcWcagContrastRatio(foreground, background)
 }
 
 export function useQrEngine() {
@@ -46,9 +20,13 @@ export function useQrEngine() {
   const isReady = ref(false)
   const isRendering = ref(false)
   const currentData = ref('https://qrstudio.app')
-  const currentDesign = ref<QrDesign>({ ...DEFAULT_QR_DESIGN })
+  const currentDesign = ref<QrDesign>(deepClone(DEFAULT_QR_DESIGN))
 
-  let debounceTimer: ReturnType<typeof setTimeout> | null = null
+  // Throttle leading + trailing : rendu immédiat (0 ms) dès la 1ère action,
+  // et rafraîchissement continu fluide (~40 FPS) lors du glissement des curseurs.
+  let throttleTimer: ReturnType<typeof setTimeout> | null = null
+  let hasPendingTrailing = false
+  const THROTTLE_WINDOW_MS = 25
 
   /**
    * Calcul du contraste et niveau de lisibilité estimé
@@ -77,7 +55,7 @@ export function useQrEngine() {
     isRendering.value = true
     try {
       if (options?.data) currentData.value = options.data
-      if (options?.design) currentDesign.value = { ...currentDesign.value, ...options.design }
+      if (options?.design) currentDesign.value = deepClone(options.design)
 
       await engineService.init(container, {
         data: currentData.value,
@@ -93,24 +71,35 @@ export function useQrEngine() {
   }
 
   /**
-   * Met à jour réactivement les données et styles sous debounce
+   * Met à jour instantanément le QR code (leading immédiat + trailing coalescé)
    */
   const updateQrCode = (data?: string, design?: Partial<QrDesign>) => {
     if (data !== undefined) currentData.value = data
     if (design) currentDesign.value = { ...currentDesign.value, ...design }
 
-    if (debounceTimer) {
-      clearTimeout(debounceTimer)
-    }
-
     isRendering.value = true
-    debounceTimer = setTimeout(() => {
+
+    if (!throttleTimer) {
       engineService.update({
         data: currentData.value,
         design: currentDesign.value
       })
-      isRendering.value = false
-    }, 100) // Debounce de 100ms
+      hasPendingTrailing = false
+
+      throttleTimer = setTimeout(() => {
+        throttleTimer = null
+        if (hasPendingTrailing) {
+          hasPendingTrailing = false
+          engineService.update({
+            data: currentData.value,
+            design: currentDesign.value
+          })
+        }
+        isRendering.value = false
+      }, THROTTLE_WINDOW_MS)
+    } else {
+      hasPendingTrailing = true
+    }
   }
 
   /**
@@ -122,8 +111,8 @@ export function useQrEngine() {
 
   if (getCurrentInstance()) {
     onUnmounted(() => {
-      if (debounceTimer) {
-        clearTimeout(debounceTimer)
+      if (throttleTimer) {
+        clearTimeout(throttleTimer)
       }
       engineService.destroy()
     })

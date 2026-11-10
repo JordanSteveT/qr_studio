@@ -3,6 +3,7 @@ import type { QrProjectEntity, QrProjectJsonExport } from '~/types/project'
 import { projectJsonExportSchema } from '~/services/validation/project.schema'
 import type { QrContent } from '~/types/content'
 import type { QrDesign } from '~/types/design'
+import { sanitizeSvgContent, utf8ToBase64 } from '~/utils/svg-sanitizer.util'
 
 export class ProjectStorageService {
   private db: QrStudioDatabase
@@ -130,6 +131,26 @@ export class ProjectStorageService {
       throw new Error(`Fichier projet invalide : ${msg}`)
     }
 
-    return validationResult.data as QrProjectJsonExport
+    const data = validationResult.data as QrProjectJsonExport
+
+    // Si un logo SVG est embarqué dans le JSON importé, l'assainir avant usage
+    const rawLogo = data.design.logo?.logoDataUrl || data.logoBase64
+    if (rawLogo && /^data:image\/svg\+xml;base64,/i.test(rawLogo)) {
+      try {
+        const base64Part = rawLogo.split(',')[1] ?? ''
+        const decoded = atob(base64Part)
+        const sanitized = sanitizeSvgContent(decoded)
+        const safeUrl = sanitized ? `data:image/svg+xml;base64,${utf8ToBase64(sanitized)}` : undefined
+        data.design.logo.logoDataUrl = safeUrl
+        if (!safeUrl) {
+          data.design.logo.hasLogo = false
+        }
+      } catch {
+        data.design.logo.logoDataUrl = undefined
+        data.design.logo.hasLogo = false
+      }
+    }
+
+    return data
   }
 }

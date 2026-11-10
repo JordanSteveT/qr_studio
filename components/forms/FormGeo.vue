@@ -22,6 +22,18 @@ const updateField = <K extends keyof QrGeoData>(key: K, value: QrGeoData[K]) => 
   })
 }
 
+const handleCoordinateInput = (key: 'latitude' | 'longitude', rawValue: string) => {
+  // Ne pas forcer 0 pendant que l'utilisateur efface ou saisit un signe '-'
+  const trimmed = rawValue.trim()
+  if (trimmed === '' || trimmed === '-' || trimmed === '.' || trimmed === '-.') {
+    return
+  }
+  const parsed = Number(trimmed)
+  if (Number.isFinite(parsed)) {
+    updateField(key, parsed)
+  }
+}
+
 const getCurrentLocation = () => {
   if (typeof window === 'undefined' || !navigator.geolocation) {
     locateError.value = 'La géolocalisation n’est pas supportée par votre navigateur.'
@@ -82,8 +94,8 @@ const getCurrentLocation = () => {
           :class="{ 'has-error': !!props.errors?.latitude }"
           :value="props.modelValue.latitude"
           placeholder="ex: 48.8584"
-          @input="updateField('latitude', parseFloat(($event.target as HTMLInputElement).value) || 0)"
-        />
+          @input="handleCoordinateInput('latitude', ($event.target as HTMLInputElement).value)"
+        >
         <p v-if="props.errors?.latitude" class="error-message" role="alert">
           {{ props.errors.latitude }}
         </p>
@@ -102,8 +114,8 @@ const getCurrentLocation = () => {
           :class="{ 'has-error': !!props.errors?.longitude }"
           :value="props.modelValue.longitude"
           placeholder="ex: 2.2945"
-          @input="updateField('longitude', parseFloat(($event.target as HTMLInputElement).value) || 0)"
-        />
+          @input="handleCoordinateInput('longitude', ($event.target as HTMLInputElement).value)"
+        >
         <p v-if="props.errors?.longitude" class="error-message" role="alert">
           {{ props.errors.longitude }}
         </p>
@@ -123,7 +135,7 @@ const getCurrentLocation = () => {
         :value="props.modelValue.query ?? ''"
         placeholder="ex: Tour Eiffel, Entrée Sud..."
         @input="updateField('query', ($event.target as HTMLInputElement).value)"
-      />
+      >
     </div>
   </div>
 </template>
@@ -146,20 +158,21 @@ const getCurrentLocation = () => {
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  padding: 0.6rem 1rem;
-  background-color: var(--color-bg-alt);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  color: var(--color-primary);
+  padding: 0.6rem 1.1rem;
+  background-color: var(--color-bg);
+  border: 1.5px solid var(--color-border-hover);
+  border-radius: 999px;
+  color: var(--color-text);
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
 }
 
 .geo-btn:hover:not(:disabled) {
-  background-color: var(--color-bg);
-  border-color: var(--color-primary);
+  background-color: #d9f24a;
+  color: #1a1523;
+  border-color: #1a1523;
 }
 
 .geo-btn:disabled {
@@ -186,35 +199,36 @@ const getCurrentLocation = () => {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-size: 0.825rem;
+  font-size: 0.84rem;
   font-weight: 600;
   color: var(--color-text);
 }
 
 .form-control {
   width: 100%;
-  padding: 0.75rem 1rem;
-  font-size: 0.95rem;
-  border: 1px solid var(--color-border);
+  padding: 0.72rem 0.95rem;
+  font-size: 0.94rem;
+  border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md);
   background-color: var(--color-bg);
   color: var(--color-text);
-  transition: all 0.2s ease;
+  transition: all var(--transition-fast);
 }
 
 .form-control:focus {
   outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
 .form-control.has-error {
-  border-color: #ef4444;
+  border-color: var(--color-danger);
 }
 
 .error-message {
   font-size: 0.8rem;
-  color: #ef4444;
+  color: var(--color-danger);
+  font-weight: 600;
   margin: 0;
 }
 

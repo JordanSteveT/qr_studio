@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import { qrContentSchema } from './content.schema'
 
+const SAFE_IMAGE_DATA_URL_REGEX = /^data:image\/(png|jpeg|jpg|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$/i
+
 export const qrGradientStopSchema = z.object({
   offset: z.number().min(0).max(1),
   color: z.string().min(1)
@@ -20,12 +22,12 @@ export const qrDotsDesignSchema = z.object({
 
 export const qrCornersSquareDesignSchema = z.object({
   color: z.string().min(1),
-  type: z.enum(['dot', 'square', 'extra-rounded', 'classy'])
+  type: z.enum(['dot', 'square', 'extra-rounded', 'classy', 'none'])
 })
 
 export const qrCornersDotDesignSchema = z.object({
   color: z.string().min(1),
-  type: z.enum(['dot', 'square'])
+  type: z.enum(['dot', 'square', 'none'])
 })
 
 export const qrBackgroundDesignSchema = z.object({
@@ -36,7 +38,10 @@ export const qrBackgroundDesignSchema = z.object({
 
 export const qrLogoSettingsSchema = z.object({
   hasLogo: z.boolean(),
-  logoDataUrl: z.string().optional(),
+  logoDataUrl: z
+    .string()
+    .refine((val) => val === '' || SAFE_IMAGE_DATA_URL_REGEX.test(val), 'Format Data URL de logo invalide')
+    .optional(),
   imageSize: z.number().min(0.05).max(0.5),
   margin: z.number().min(0).max(50),
   hideBackgroundDots: z.boolean(),
@@ -73,5 +78,8 @@ export const projectJsonExportSchema = z.object({
   name: z.string().min(1, 'Le nom du projet est obligatoire').max(60),
   content: qrContentSchema,
   design: qrDesignSchema,
-  logoBase64: z.string().optional()
+  logoBase64: z
+    .string()
+    .refine((val) => val === '' || SAFE_IMAGE_DATA_URL_REGEX.test(val), 'Format Data URL de logo invalide')
+    .optional()
 })

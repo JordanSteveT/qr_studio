@@ -18,6 +18,7 @@ export class QrEngineService {
   private qrCodeStylingClass: any = null
   private container: HTMLElement | null = null
   private currentOptions: QrRenderOptions | null = null
+  private renderGeneration = 0
 
   /**
    * Construit la configuration compatible avec qr-code-styling
@@ -84,6 +85,23 @@ export class QrEngineService {
   }
 
   /**
+   * Remplace atomiquement le contenu du conteneur cible par la nouvelle instance rendue.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private commitInstanceToContainer(instance: any): void {
+    if (!this.container) return
+
+    while (this.container.firstChild) {
+      this.container.removeChild(this.container.firstChild)
+    }
+
+    const appendResult = instance.append(this.container)
+    if (appendResult && typeof appendResult.catch === 'function') {
+      appendResult.catch((err: unknown) => console.warn('[QrEngineService] Warning append:', err))
+    }
+  }
+
+  /**
    * Initialise le moteur et monte le QR code dans le conteneur cible côté client
    */
   public async init(container: HTMLElement, options: QrRenderOptions): Promise<void> {
@@ -93,9 +111,9 @@ export class QrEngineService {
 
     this.container = container
     this.currentOptions = options
+    const generation = ++this.renderGeneration
 
     try {
-      // Import dynamique pour garantir la conformité SSR et compatibilité ESM/CJS Vite
       const mod = await import('qr-code-styling')
       const QRCodeStyling =
         typeof mod.default === 'function'
@@ -107,17 +125,19 @@ export class QrEngineService {
       this.qrCodeStylingClass = QRCodeStyling
       const stylingOptions = this.buildQrCodeStylingOptions(options)
 
-      this.qrInstance = new this.qrCodeStylingClass(stylingOptions)
+      const instance = new this.qrCodeStylingClass(stylingOptions)
+      this.qrInstance = instance
 
-      // Nettoyage préalable du conteneur
-      while (container.firstChild) {
-        container.removeChild(container.firstChild)
+      const drawingPromise = instance._svgDrawingPromise || instance._canvasDrawingPromise
+      if (drawingPromise && typeof drawingPromise.then === 'function') {
+        await drawingPromise
       }
 
-      const appendResult = this.qrInstance.append(container)
-      if (appendResult && typeof appendResult.then === 'function') {
-        await appendResult
+      if (generation !== this.renderGeneration || !this.container) {
+        return
       }
+
+      this.commitInstanceToContainer(instance)
     } catch (err: unknown) {
       console.error('[QrEngineService] Échec d\'initialisation du moteur QR:', err)
       throw err
@@ -125,7 +145,7 @@ export class QrEngineService {
   }
 
   /**
-   * Met à jour réactivement les données et styles
+   * Met à jour immédiatement les données et styles sans flash blanc (swap atomique).
    */
   public update(options: Partial<QrRenderOptions>): void {
     if (!this.qrInstance || !this.currentOptions) {
@@ -144,19 +164,30 @@ export class QrEngineService {
     }
 
     const stylingOptions = this.buildQrCodeStylingOptions(this.currentOptions)
+    const generation = ++this.renderGeneration
 
-    // Réinstanciation systématique et propre dans le conteneur cible.
-    // Cela élimine définitivement les bugs de mutation interne de qr-code-styling (conflits de
-    // clipPath SVG, deep merge d'options qui ignore les clés supprimées ou fait disparaître le SVG).
     if (this.container && this.qrCodeStylingClass) {
-      while (this.container.firstChild) {
-        this.container.removeChild(this.container.firstChild)
+      const nextInstance = new this.qrCodeStylingClass(stylingOptions)
+      const drawingPromise = nextInstance._svgDrawingPromise || nextInstance._canvasDrawingPromise
+
+      if (drawingPromise && typeof drawingPromise.then === 'function') {
+        // Garde l'ancien rendu visible pendant la micro-génération du nouveau SVG (0 flash)
+        drawingPromise
+          .then(() => {
+            if (generation !== this.renderGeneration || !this.container) {
+              return
+            }
+            this.qrInstance = nextInstance
+            this.commitInstanceToContainer(nextInstance)
+          })
+          .catch((err: unknown) => {
+            console.warn('[QrEngineService] Warning draw update:', err)
+          })
+        return
       }
-      this.qrInstance = new this.qrCodeStylingClass(stylingOptions)
-      const appendResult = this.qrInstance.append(this.container)
-      if (appendResult && typeof appendResult.catch === 'function') {
-        appendResult.catch((err: unknown) => console.warn('[QrEngineService] Warning append update:', err))
-      }
+
+      this.qrInstance = nextInstance
+      this.commitInstanceToContainer(nextInstance)
       return
     }
 
@@ -187,6 +218,7 @@ export class QrEngineService {
    * Nettoie les ressources
    */
   public destroy(): void {
+    this.renderGeneration++
     if (this.container) {
       while (this.container.firstChild) {
         this.container.removeChild(this.container.firstChild)
